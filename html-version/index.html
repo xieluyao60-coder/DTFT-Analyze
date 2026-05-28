@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="数字信号处理三部分综合分析 Web 应用：典型离散序列、采样与插值重构、Z 变换零极点。"
+    />
+    <title>数字信号处理综合分析器</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <p class="eyebrow">DSP Analysis Studio</p>
+          <h1>数字信号处理综合分析器</h1>
+          <p class="brand-block__text">
+            典型离散序列、采样与插值重构、Z 变换零极点，一页内集中展示与交互分析。
+          </p>
+        </div>
+
+        <nav class="section-switcher" aria-label="分析模块切换">
+          <button type="button" class="section-switcher__button active" data-section="discrete">
+            典型离散序列
+          </button>
+          <button type="button" class="section-switcher__button" data-section="sampling">
+            采样与插值重构
+          </button>
+          <button type="button" class="section-switcher__button" data-section="zplane">
+            Z变换零极点
+          </button>
+        </nav>
+
+        <label class="upload-shortcut" for="global-upload">
+          <input
+            id="global-upload"
+            type="file"
+            accept=".txt,.csv,audio/*,video/*"
+          />
+          <span class="upload-shortcut__title">上传信号 / 音频 / 视频文件</span>
+          <span class="upload-shortcut__meta">预留分析接口与原信号预览</span>
+        </label>
+      </header>
+
+      <main class="content-grid">
+        <aside class="sidebar panel">
+          <div class="panel__header sidebar__header">
+            <div>
+              <p id="sidebar-eyebrow" class="eyebrow"></p>
+              <h2 id="sidebar-title"></h2>
+            </div>
+          </div>
+          <p id="sidebar-description" class="sidebar__description"></p>
+          <div id="sequence-list" class="sequence-list"></div>
+        </aside>
+
+        <section class="workspace">
+          <section class="panel controls-panel">
+            <div class="panel__header">
+              <div>
+                <p class="eyebrow">分析控制</p>
+                <h2 id="control-title">范围、自定义输入与参数</h2>
+              </div>
+              <button id="reset-button" type="button" class="text-button">
+                恢复当前模块默认参数
+              </button>
+            </div>
+            <div id="section-controls" class="section-controls"></div>
+            <p class="drag-tip">可拖动右侧图形平移范围，查看不同区间下的曲线。</p>
+          </section>
+
+          <section class="overview-grid">
+            <section class="panel">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">当前分析对象</p>
+                  <h2 id="summary-title"></h2>
+                </div>
+                <span id="summary-chip" class="panel-chip"></span>
+              </div>
+              <div id="summary-body" class="summary-body"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">上传与原信号预览</p>
+                  <h2>文件接口</h2>
+                </div>
+              </div>
+              <div id="upload-preview" class="upload-preview"></div>
+            </section>
+          </section>
+
+          <section id="metric-grid" class="metric-grid"></section>
+
+          <section id="chart-grid" class="chart-grid"></section>
+
+          <section class="detail-grid">
+            <section class="panel">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">结果采样</p>
+                  <h2 id="table-title"></h2>
+                </div>
+              </div>
+              <div id="table-area" class="table-area"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">说明与约束</p>
+                  <h2>说明</h2>
+                </div>
+              </div>
+              <div id="notes-area" class="notes-area"></div>
+            </section>
+          </section>
+        </section>
+      </main>
+
+      <section class="extension-lab">
+        <section class="panel extension-lab__header">
+          <div class="panel__header">
+            <div>
+              <p class="eyebrow">扩展理论与变换实验区</p>
+              <h2>DFS、DFT、频域采样定理与 CZT</h2>
+            </div>
+            <span class="panel-chip">在不改动原功能的前提下追加</span>
+          </div>
+          <nav class="extension-topic-switcher" aria-label="扩展主题切换">
+            <button type="button" class="extension-topic-switcher__button active" data-extension-topic="dfs">
+              周期序列 DFS
+            </button>
+            <button type="button" class="extension-topic-switcher__button" data-extension-topic="dft">
+              有限序列 DFT
+            </button>
+            <button type="button" class="extension-topic-switcher__button" data-extension-topic="sampling">
+              频域采样定理
+            </button>
+            <button type="button" class="extension-topic-switcher__button" data-extension-topic="czt">
+              线性调频 Z 变换
+            </button>
+          </nav>
+        </section>
+
+        <section id="extension-root" class="extension-topic-grid">
+          <aside class="panel extension-theory">
+            <div class="panel__header">
+              <div>
+                <p class="eyebrow">定义与性质</p>
+                <h2 id="extension-topic-title"></h2>
+              </div>
+            </div>
+            <p id="extension-topic-description" class="sidebar__description"></p>
+            <div id="extension-theory-list" class="extension-theory-list"></div>
+          </aside>
+
+          <section class="panel extension-content-panel">
+            <div id="extension-content"></div>
+          </section>
+        </section>
+      </section>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

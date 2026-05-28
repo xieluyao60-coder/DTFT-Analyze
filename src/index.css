@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --font-sans: 'IBM Plex Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei',
+    sans-serif;
+  --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+  --text-primary: #183246;
+  --text-secondary: #4c6174;
+  --text-muted: #70859a;
+  --surface: #f5f9fc;
+  --surface-deep: #e8f1f7;
+  --panel-soft: rgba(240, 247, 252, 0.84);
+  --plot-bg: #fdfefe;
+  --accent-teal: #2cb8a4;
+  --accent-orange: #f28a53;
+  --accent-ink: #23556a;
+  --line-soft: rgba(112, 138, 165, 0.16);
+
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at top left, rgba(44, 184, 164, 0.14), transparent 28%),
+    radial-gradient(circle at top right, rgba(242, 138, 83, 0.12), transparent 24%),
+    linear-gradient(180deg, #eef5fa 0%, #f7fbfd 45%, #f4f8fb 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+code {
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(22, 60, 81, 0.07);
+  font-family: var(--font-mono);
+  color: var(--accent-ink);
+}
+
+#root {
+  min-height: 100vh;
+}

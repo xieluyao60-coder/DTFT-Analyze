@@ -1,0 +1,1714 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="数字信号处理典型序列与 DTFT 可视化分析纯 HTML 版本"
+    />
+    <title>离散时间序列与 DTFT 分析器 - HTML 版</title>
+    <style>
+:root {
+  --font-sans: 'IBM Plex Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei',
+    sans-serif;
+  --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+  --text-primary: #183246;
+  --text-secondary: #4c6174;
+  --text-muted: #70859a;
+  --panel-soft: rgba(240, 247, 252, 0.84);
+  --plot-bg: #fdfefe;
+  --accent-teal: #2cb8a4;
+  --accent-orange: #f28a53;
+  --accent-ink: #23556a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at top left, rgba(44, 184, 164, 0.14), transparent 28%),
+    radial-gradient(circle at top right, rgba(242, 138, 83, 0.12), transparent 24%),
+    linear-gradient(180deg, #eef5fa 0%, #f7fbfd 45%, #f4f8fb 100%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+code {
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(22, 60, 81, 0.07);
+  font-family: var(--font-mono);
+  color: var(--accent-ink);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  gap: 24px;
+  padding: 28px;
+  min-height: 100vh;
+}
+
+.sidebar,
+.workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.brand-card {
+  padding: 30px 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(45, 196, 176, 0.16), transparent 42%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(238, 246, 253, 0.98));
+  border: 1px solid rgba(104, 144, 176, 0.14);
+  box-shadow: 0 22px 60px rgba(73, 107, 135, 0.12);
+}
+
+.brand-card h1 {
+  margin: 0;
+  font-size: clamp(2rem, 1.15rem + 1.8vw, 3.1rem);
+  line-height: 1.04;
+}
+
+.brand-card__description {
+  margin-top: 18px;
+  color: var(--text-secondary);
+}
+
+.panel {
+  padding: 24px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.93);
+  border: 1px solid rgba(94, 128, 158, 0.14);
+  box-shadow: 0 18px 50px rgba(83, 113, 141, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.panel h2,
+.panel h3,
+.note-grid h3 {
+  margin: 0;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-teal);
+  font-weight: 700;
+}
+
+.panel-chip {
+  padding: 9px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: rgba(31, 88, 115, 0.08);
+  border: 1px solid rgba(31, 88, 115, 0.1);
+}
+
+.sequence-list {
+  display: grid;
+  gap: 12px;
+}
+
+.sequence-item {
+  text-align: left;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(104, 130, 154, 0.12);
+  background: linear-gradient(180deg, rgba(247, 251, 255, 0.9), rgba(255, 255, 255, 0.92));
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+  cursor: pointer;
+}
+
+.sequence-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(39, 167, 152, 0.32);
+  box-shadow: 0 16px 32px rgba(45, 118, 148, 0.1);
+}
+
+.sequence-item--active {
+  border-color: rgba(39, 167, 152, 0.42);
+  background:
+    radial-gradient(circle at top right, rgba(39, 167, 152, 0.13), transparent 40%),
+    linear-gradient(180deg, rgba(244, 251, 253, 0.98), rgba(255, 255, 255, 0.98));
+  box-shadow: 0 18px 32px rgba(42, 121, 149, 0.12);
+}
+
+.sequence-item__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sequence-item__head strong {
+  font-size: 1rem;
+}
+
+.sequence-item__head span {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  color: var(--accent-orange);
+  background: rgba(242, 137, 83, 0.11);
+}
+
+.sequence-item p {
+  margin: 10px 0 0;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+.upload-dropzone {
+  display: grid;
+  gap: 6px;
+  padding: 22px;
+  border-radius: 24px;
+  border: 1.5px dashed rgba(45, 124, 150, 0.28);
+  background:
+    radial-gradient(circle at top left, rgba(45, 196, 176, 0.08), transparent 40%),
+    rgba(245, 250, 253, 0.92);
+  cursor: pointer;
+}
+
+.upload-dropzone input {
+  display: none;
+}
+
+.upload-dropzone strong {
+  font-size: 1rem;
+}
+
+.upload-dropzone span {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+.upload-meta {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.upload-meta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.92rem;
+}
+
+.upload-meta__label,
+.formula-box__label,
+.field-row span,
+thead th {
+  color: var(--text-muted);
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.field-group {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  background: var(--panel-soft);
+  border: 1px solid rgba(119, 141, 162, 0.12);
+}
+
+.field-group--wide {
+  grid-column: 1 / -1;
+}
+
+.field-group__title {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.field-row--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.field-row label {
+  display: grid;
+  gap: 8px;
+}
+
+input[type='number'],
+input[type='text'] {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(112, 138, 165, 0.18);
+  background: rgba(255, 255, 255, 0.98);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+input[type='number']:focus,
+input[type='text']:focus {
+  outline: none;
+  border-color: rgba(39, 167, 152, 0.46);
+  box-shadow: 0 0 0 4px rgba(39, 167, 152, 0.12);
+}
+
+.expression-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.primary-button {
+  padding: 12px 18px;
+  border-radius: 16px;
+  color: #fff;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--accent-teal), #2389a4);
+  box-shadow: 0 16px 32px rgba(38, 128, 148, 0.24);
+  cursor: pointer;
+}
+
+.text-button,
+.example-chip {
+  padding: 10px 14px;
+  border: 1px solid rgba(99, 123, 148, 0.12);
+  border-radius: 14px;
+  color: var(--text-primary);
+  background: rgba(247, 250, 253, 0.88);
+  cursor: pointer;
+}
+
+.expression-help,
+.formula-box p,
+.note-grid p,
+.error-panel p:last-child {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.example-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.example-chip {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.error-text {
+  margin: 0;
+  color: #b85132;
+}
+
+.overview-grid,
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.formula-box {
+  display: grid;
+  gap: 18px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.metric-card {
+  padding: 16px;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(242, 137, 83, 0.08), transparent 42%),
+    rgba(247, 251, 255, 0.95);
+  border: 1px solid rgba(110, 141, 170, 0.1);
+}
+
+.metric-card__label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.metric-card strong {
+  font-size: 1.3rem;
+}
+
+.charts-grid {
+  display: grid;
+  gap: 24px;
+}
+
+.plot-frame {
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(112, 138, 165, 0.12);
+  background: var(--plot-bg);
+}
+
+.plot-frame svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  text-align: left;
+  padding: 0 0 12px;
+  font-size: 0.82rem;
+  border-bottom: 1px solid rgba(119, 141, 162, 0.14);
+}
+
+tbody td {
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(119, 141, 162, 0.12);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.note-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.note-grid article {
+  padding: 18px;
+  border-radius: 22px;
+  background: var(--panel-soft);
+  border: 1px solid rgba(119, 141, 162, 0.12);
+}
+
+@media (max-width: 1200px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-grid,
+  .note-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    padding: 18px;
+    gap: 18px;
+  }
+
+  .panel,
+  .brand-card {
+    padding: 20px;
+    border-radius: 24px;
+  }
+
+  .control-grid,
+  .overview-grid,
+  .data-grid,
+  .metric-grid,
+  .note-grid,
+  .field-row,
+  .field-row--three {
+    grid-template-columns: 1fr;
+  }
+
+  .expression-row {
+    grid-template-columns: 1fr;
+  }
+
+  .panel__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+</style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <section class="brand-card">
+          <p class="eyebrow">DSP Sequence Lab</p>
+          <h1>离散时间序列与 DTFT 分析器</h1>
+          <p class="brand-card__description">
+            纯 HTML、CSS、JavaScript 版本。可直接放到静态网站空间中使用。
+          </p>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <div>
+              <p class="eyebrow">典型序列</p>
+              <h2>序列列表</h2>
+            </div>
+            <span id="active-mode-chip" class="panel-chip">当前查看典型序列</span>
+          </div>
+          <div id="sequence-list" class="sequence-list"></div>
+        </section>
+
+        <section class="panel upload-panel">
+          <div class="panel__header">
+            <div>
+              <p class="eyebrow">接口预留</p>
+              <h2>文件上传</h2>
+            </div>
+          </div>
+          <label class="upload-dropzone" for="signal-upload">
+            <input
+              id="signal-upload"
+              type="file"
+              accept=".txt,.csv,audio/*,video/*"
+            />
+            <strong>上传离散信号 / 音频 / 视频文件</strong>
+            <span>当前为预留接口，可继续接入波形抽样、FFT 与帧序列分析流程。</span>
+          </label>
+          <div id="upload-meta" class="upload-meta">
+            <div>
+              <span class="upload-meta__label">状态</span>
+              <span>尚未选择文件</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <section class="panel control-panel">
+          <div class="panel__header">
+            <div>
+              <p class="eyebrow">分析控制</p>
+              <h2>范围与表达式</h2>
+            </div>
+            <button id="reset-range-button" type="button" class="text-button">
+              恢复默认范围
+            </button>
+          </div>
+
+          <div class="control-grid">
+            <div class="field-group">
+              <span class="field-group__title">n 范围</span>
+              <div class="field-row">
+                <label>
+                  <span>起点</span>
+                  <input id="n-min-input" type="number" step="1" />
+                </label>
+                <label>
+                  <span>终点</span>
+                  <input id="n-max-input" type="number" step="1" />
+                </label>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <span class="field-group__title">ω 范围</span>
+              <div class="field-row field-row--three">
+                <label>
+                  <span>起点</span>
+                  <input id="omega-min-input" type="number" step="0.1" />
+                </label>
+                <label>
+                  <span>终点</span>
+                  <input id="omega-max-input" type="number" step="0.1" />
+                </label>
+                <label>
+                  <span>采样点</span>
+                  <input id="omega-samples-input" type="number" step="1" />
+                </label>
+              </div>
+            </div>
+
+            <div class="field-group field-group--wide">
+              <span class="field-group__title">自定义序列表达式</span>
+              <div class="expression-row">
+                <input
+                  id="expression-input"
+                  type="text"
+                  placeholder="例如：delta(n) + 0.5 * rect(n, 6)"
+                />
+                <button id="submit-expression-button" type="button" class="primary-button">
+                  确定
+                </button>
+              </div>
+              <p id="expression-help" class="expression-help"></p>
+              <div id="example-list" class="example-list"></div>
+              <p id="custom-error" class="error-text hidden"></p>
+            </div>
+
+            <div id="parameter-group" class="field-group field-group--wide hidden">
+              <span class="field-group__title">当前典型序列参数</span>
+              <div id="parameter-row" class="field-row"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="error-panel" class="panel error-panel hidden">
+          <p class="eyebrow">错误</p>
+          <h2>当前表达式无法完成计算</h2>
+          <p id="error-message"></p>
+        </section>
+
+        <div id="analysis-content">
+          <section class="overview-grid">
+            <section class="panel">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">当前分析对象</p>
+                  <h2 id="analysis-title"></h2>
+                </div>
+                <span id="analysis-mode-chip" class="panel-chip"></span>
+              </div>
+              <div class="formula-box">
+                <div>
+                  <span class="formula-box__label">序列表达式</span>
+                  <code id="analysis-formula"></code>
+                </div>
+                <div>
+                  <span class="formula-box__label">理论说明</span>
+                  <p id="analysis-theory"></p>
+                </div>
+                <div>
+                  <span class="formula-box__label">计算说明</span>
+                  <p id="analysis-note"></p>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">结果速览</p>
+                  <h2>指标摘要</h2>
+                </div>
+              </div>
+              <div id="metric-grid" class="metric-grid"></div>
+            </section>
+          </section>
+
+          <section class="charts-grid">
+            <section class="panel plot-card">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">离散时间序列 x[n]</p>
+                  <h2>序列散点图</h2>
+                </div>
+              </div>
+              <div id="sequence-plot" class="plot-frame"></div>
+            </section>
+
+            <section class="panel plot-card">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">|X(e^{jω})|</p>
+                  <h2>DTFT 幅度谱</h2>
+                </div>
+              </div>
+              <div id="magnitude-plot" class="plot-frame"></div>
+            </section>
+
+            <section class="panel plot-card">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">∠X(e^{jω})</p>
+                  <h2>DTFT 相位谱</h2>
+                </div>
+              </div>
+              <div id="phase-plot" class="plot-frame"></div>
+            </section>
+          </section>
+
+          <section class="data-grid">
+            <section class="panel table-card">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">序列样本预览</p>
+                  <h3>序列样本预览</h3>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>n</th>
+                      <th>x[n]</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sequence-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel table-card">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">频谱采样预览</p>
+                  <h3>频谱采样预览</h3>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ω</th>
+                      <th>|X|</th>
+                      <th>∠X</th>
+                    </tr>
+                  </thead>
+                  <tbody id="spectrum-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section class="panel note-panel">
+            <div class="panel__header">
+              <div>
+                <p class="eyebrow">使用说明</p>
+                <h2>表达式与分析约束</h2>
+              </div>
+            </div>
+            <div class="note-grid">
+              <article>
+                <h3>可用函数</h3>
+                <p id="note-expression-help"></p>
+              </article>
+              <article>
+                <h3>范围联动</h3>
+                <p>
+                  修改 n 范围后，序列散点图与数值 DTFT 会同步刷新；修改 ω 范围后，幅度谱与相位谱会在对应频带重新采样。
+                </p>
+              </article>
+              <article>
+                <h3>数据精度</h3>
+                <p>
+                  所有展示数据在界面中统一保留到最多两位小数，便于教学展示与截图整理。
+                </p>
+              </article>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script>
+(function () {
+  const TWO_PI = Math.PI * 2
+  const DEFAULT_EXPRESSION =
+    'delta(n) + 0.5 * rect(n, 6) - 0.25 * delta(n - 3)'
+  const INITIAL_RANGE = {
+    nMin: -8,
+    nMax: 16,
+    omegaMin: -Math.PI,
+    omegaMax: Math.PI,
+    omegaSamples: 256,
+  }
+
+  const HELP_TEXT =
+    '可用函数: delta(n), u(n), rect(n, N), tri(n, N), expseq(a, n), sinseq(ω, n), cosseq(ω, n), abs(x), pow(a, b), pi。支持 + - * / 与括号。'
+
+  const CUSTOM_EXAMPLES = [
+    { label: '冲激 + 矩形', expression: 'delta(n) + 0.5 * rect(n, 6)' },
+    { label: '阶跃差分', expression: 'u(n) - u(n - 4)' },
+    { label: '指数乘矩形', expression: 'expseq(0.8, n) * rect(n, 8)' },
+    { label: '移位组合', expression: 'delta(n + 2) + delta(n - 2)' },
+  ]
+
+  const SEQUENCE_PRESETS = [
+    {
+      id: 'impulse',
+      name: '单位冲激序列',
+      shortFormula: 'δ[n]',
+      description: '仅在 n = 0 处取 1，其他位置为 0。',
+      badge: '基础',
+      formula: () => 'δ[n]',
+      theory: 'X(e^{jω}) = 1',
+      analysisNote: '该序列 DTFT 为常数，图中结果与理论完全一致。',
+      parameters: [],
+      defaultParams: {},
+      generator: (n) => (n === 0 ? 1 : 0),
+    },
+    {
+      id: 'step',
+      name: '单位阶跃序列',
+      shortFormula: 'u[n]',
+      description: 'n ≥ 0 时取 1，其余为 0。',
+      badge: '无限长',
+      formula: () => 'u[n]',
+      theory: '广义意义下含有奇异项；界面中按当前 n 范围做数值 DTFT。',
+      analysisNote: '为保持教学可视化，当前采用截断样本的数值 DTFT。',
+      parameters: [],
+      defaultParams: {},
+      generator: (n) => (n >= 0 ? 1 : 0),
+    },
+    {
+      id: 'rect',
+      name: '矩形序列',
+      shortFormula: 'rectN[n]',
+      description: '0 ≤ n ≤ N - 1 时取 1，其余为 0。',
+      badge: '有限长',
+      formula: (params) => `rect[n], N = ${formatDisplayNumber(params.N)}`,
+      theory: (params) =>
+        `X(e^{jω}) = e^{-jω(${formatDisplayNumber(params.N)}-1)/2} · sin(${formatDisplayNumber(params.N)}ω/2) / sin(ω/2)`,
+      analysisNote: '有限长序列，当前频谱与理论离散求和完全对应。',
+      parameters: [{ key: 'N', label: '宽度 N', min: 1, max: 20, step: 1 }],
+      defaultParams: { N: 6 },
+      generator: (n, params) => (n >= 0 && n <= Math.round(params.N) - 1 ? 1 : 0),
+    },
+    {
+      id: 'exp',
+      name: '实指数序列',
+      shortFormula: 'a^n u[n]',
+      description: '|a| < 1 时为衰减指数序列。',
+      badge: '常用',
+      formula: (params) => `${formatDisplayNumber(params.a)}^n · u[n]`,
+      theory: (params) =>
+        `|a| < 1 时，X(e^{jω}) = 1 / (1 - ${formatDisplayNumber(params.a)}e^{-jω})`,
+      analysisNote: '图中展示当前 n 范围的数值 DTFT，便于与时域截断结果联动。',
+      parameters: [{ key: 'a', label: '指数底数 a', min: -0.95, max: 0.95, step: 0.05 }],
+      defaultParams: { a: 0.8 },
+      generator: (n, params) => (n >= 0 ? Math.pow(params.a, n) : 0),
+    },
+    {
+      id: 'tri',
+      name: '三角序列',
+      shortFormula: 'triN[n]',
+      description: '中心对称有限长三角序列。',
+      badge: '扩展',
+      formula: (params) => `tri[n], N = ${formatDisplayNumber(params.N)}`,
+      theory: '有限长序列，可直接按定义进行 DTFT 数值求和。',
+      analysisNote: '适合观察有限支撑序列的主瓣和旁瓣变化。',
+      parameters: [{ key: 'N', label: '半宽 N', min: 2, max: 12, step: 1 }],
+      defaultParams: { N: 5 },
+      generator: (n, params) => {
+        const distance = Math.abs(n)
+        const width = Math.round(params.N)
+        return distance > width ? 0 : round2(1 - distance / (width + 1))
+      },
+    },
+    {
+      id: 'delay',
+      name: '延时冲激序列',
+      shortFormula: 'δ[n-k]',
+      description: '通过 k 控制冲激出现的位置。',
+      badge: '移位',
+      formula: (params) => `δ[n - ${formatDisplayNumber(params.k)}]`,
+      theory: (params) => `X(e^{jω}) = e^{-jω${formatDisplayNumber(params.k)}}`,
+      analysisNote: '可直接观察时域移位对应的频域相位变化。',
+      parameters: [{ key: 'k', label: '延时 k', min: -12, max: 12, step: 1 }],
+      defaultParams: { k: 3 },
+      generator: (n, params) => (n === Math.round(params.k) ? 1 : 0),
+    },
+  ]
+
+  const state = {
+    activeMode: 'preset',
+    activePresetId: 'impulse',
+    sequenceParams: getDefaultSequenceParams(),
+    rangeSettings: { ...INITIAL_RANGE },
+    draftExpression: DEFAULT_EXPRESSION,
+    committedExpression: normalizeExpression(DEFAULT_EXPRESSION),
+    customError: '',
+    selectedFile: null,
+  }
+
+  const elements = {
+    sequenceList: document.getElementById('sequence-list'),
+    activeModeChip: document.getElementById('active-mode-chip'),
+    analysisModeChip: document.getElementById('analysis-mode-chip'),
+    expressionHelp: document.getElementById('expression-help'),
+    noteExpressionHelp: document.getElementById('note-expression-help'),
+    exampleList: document.getElementById('example-list'),
+    customError: document.getElementById('custom-error'),
+    nMinInput: document.getElementById('n-min-input'),
+    nMaxInput: document.getElementById('n-max-input'),
+    omegaMinInput: document.getElementById('omega-min-input'),
+    omegaMaxInput: document.getElementById('omega-max-input'),
+    omegaSamplesInput: document.getElementById('omega-samples-input'),
+    expressionInput: document.getElementById('expression-input'),
+    submitExpressionButton: document.getElementById('submit-expression-button'),
+    resetRangeButton: document.getElementById('reset-range-button'),
+    parameterGroup: document.getElementById('parameter-group'),
+    parameterRow: document.getElementById('parameter-row'),
+    analysisTitle: document.getElementById('analysis-title'),
+    analysisFormula: document.getElementById('analysis-formula'),
+    analysisTheory: document.getElementById('analysis-theory'),
+    analysisNote: document.getElementById('analysis-note'),
+    metricGrid: document.getElementById('metric-grid'),
+    sequencePlot: document.getElementById('sequence-plot'),
+    magnitudePlot: document.getElementById('magnitude-plot'),
+    phasePlot: document.getElementById('phase-plot'),
+    sequenceTableBody: document.getElementById('sequence-table-body'),
+    spectrumTableBody: document.getElementById('spectrum-table-body'),
+    errorPanel: document.getElementById('error-panel'),
+    errorMessage: document.getElementById('error-message'),
+    analysisContent: document.getElementById('analysis-content'),
+    signalUpload: document.getElementById('signal-upload'),
+    uploadMeta: document.getElementById('upload-meta'),
+  }
+
+  bindEvents()
+  renderExamples()
+  renderSequenceList()
+  render()
+
+  function bindEvents() {
+    elements.expressionHelp.textContent = HELP_TEXT
+    elements.noteExpressionHelp.textContent = HELP_TEXT
+    elements.expressionInput.value = state.draftExpression
+
+    elements.nMinInput.addEventListener('input', handleRangeInput)
+    elements.nMaxInput.addEventListener('input', handleRangeInput)
+    elements.omegaMinInput.addEventListener('input', handleRangeInput)
+    elements.omegaMaxInput.addEventListener('input', handleRangeInput)
+    elements.omegaSamplesInput.addEventListener('input', handleRangeInput)
+    elements.resetRangeButton.addEventListener('click', () => {
+      state.rangeSettings = { ...INITIAL_RANGE }
+      render()
+    })
+    elements.expressionInput.addEventListener('input', (event) => {
+      state.draftExpression = event.target.value
+    })
+    elements.submitExpressionButton.addEventListener('click', submitCustomExpression)
+    elements.signalUpload.addEventListener('change', (event) => {
+      state.selectedFile = event.target.files && event.target.files[0] ? event.target.files[0] : null
+      renderUploadMeta()
+    })
+  }
+
+  function handleRangeInput() {
+    const nextRange = {
+      nMin: parseFloat(elements.nMinInput.value),
+      nMax: parseFloat(elements.nMaxInput.value),
+      omegaMin: parseFloat(elements.omegaMinInput.value),
+      omegaMax: parseFloat(elements.omegaMaxInput.value),
+      omegaSamples: parseInt(elements.omegaSamplesInput.value, 10),
+    }
+
+    if (Object.values(nextRange).some((value) => Number.isNaN(value))) {
+      return
+    }
+
+    state.rangeSettings = nextRange
+    render()
+  }
+
+  function submitCustomExpression() {
+    try {
+      const normalized = normalizeExpression(state.draftExpression)
+      evaluateCustomSequence(
+        normalized,
+        buildIntegerRange(
+          sanitizeRangeSettings(state.rangeSettings).nMin,
+          sanitizeRangeSettings(state.rangeSettings).nMax,
+        ),
+      )
+      state.committedExpression = normalized
+      state.activeMode = 'custom'
+      state.customError = ''
+      render()
+    } catch (error) {
+      state.customError = error instanceof Error ? error.message : '表达式有误，请重新输入。'
+      renderCustomError()
+    }
+  }
+
+  function renderExamples() {
+    elements.exampleList.innerHTML = ''
+    CUSTOM_EXAMPLES.forEach((example) => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'example-chip'
+      button.textContent = example.label
+      button.addEventListener('click', () => {
+        state.draftExpression = example.expression
+        elements.expressionInput.value = example.expression
+      })
+      elements.exampleList.appendChild(button)
+    })
+  }
+
+  function renderSequenceList() {
+    elements.sequenceList.innerHTML = ''
+    SEQUENCE_PRESETS.forEach((preset) => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className =
+        'sequence-item' +
+        (state.activeMode === 'preset' && state.activePresetId === preset.id
+          ? ' sequence-item--active'
+          : '')
+      button.innerHTML = `
+        <div class="sequence-item__head">
+          <strong>${preset.name}</strong>
+          <span>${preset.badge}</span>
+        </div>
+        <code>${preset.shortFormula}</code>
+        <p>${preset.description}</p>
+      `
+      button.addEventListener('click', () => {
+        state.activeMode = 'preset'
+        state.activePresetId = preset.id
+        state.customError = ''
+        render()
+      })
+      elements.sequenceList.appendChild(button)
+    })
+  }
+
+  function render() {
+    renderRangeInputs()
+    renderParameterInputs()
+    renderCustomError()
+    renderSequenceList()
+    renderUploadMeta()
+
+    const analysis = computeAnalysis()
+
+    if (analysis.hasError) {
+      elements.errorPanel.classList.remove('hidden')
+      elements.analysisContent.classList.add('hidden')
+      elements.errorMessage.textContent = analysis.message
+      return
+    }
+
+    elements.errorPanel.classList.add('hidden')
+    elements.analysisContent.classList.remove('hidden')
+    elements.activeModeChip.textContent =
+      state.activeMode === 'preset' ? '当前查看典型序列' : '当前查看自定义序列'
+    elements.analysisModeChip.textContent =
+      state.activeMode === 'preset' ? '典型序列' : '自定义序列'
+
+    elements.analysisTitle.textContent = analysis.title
+    elements.analysisFormula.textContent = analysis.formula
+    elements.analysisTheory.textContent = analysis.theory
+    elements.analysisNote.textContent = analysis.analysisNote
+
+    renderMetrics(analysis.metrics)
+    renderSequenceTable(analysis.samples)
+    renderSpectrumTable(analysis.spectrum)
+    renderPlot(elements.sequencePlot, {
+      title: '序列散点图',
+      data: analysis.samples.map((sample) => ({ x: sample.n, y: sample.value })),
+      mode: 'stem',
+      stroke: getCssVariable('--accent-teal'),
+      xLabel: 'n',
+      yLabel: 'x[n]',
+      xFormatter: formatDisplayNumber,
+      yFormatter: formatDisplayNumber,
+    })
+    renderPlot(elements.magnitudePlot, {
+      title: 'DTFT 幅度谱',
+      data: analysis.spectrum.map((sample) => ({ x: sample.omega, y: sample.magnitude })),
+      mode: 'line',
+      stroke: getCssVariable('--accent-orange'),
+      xLabel: 'ω',
+      yLabel: '幅值',
+      xFormatter: formatOmegaLabel,
+      yFormatter: formatDisplayNumber,
+    })
+    renderPlot(elements.phasePlot, {
+      title: 'DTFT 相位谱',
+      data: analysis.spectrum.map((sample) => ({ x: sample.omega, y: sample.phase })),
+      mode: 'line',
+      stroke: getCssVariable('--accent-ink'),
+      xLabel: 'ω',
+      yLabel: '相位 / rad',
+      xFormatter: formatOmegaLabel,
+      yFormatter: formatDisplayNumber,
+    })
+  }
+
+  function renderRangeInputs() {
+    const safe = sanitizeRangeSettings(state.rangeSettings)
+    elements.nMinInput.value = safe.nMin
+    elements.nMaxInput.value = safe.nMax
+    elements.omegaMinInput.value = round2(safe.omegaMin)
+    elements.omegaMaxInput.value = round2(safe.omegaMax)
+    elements.omegaSamplesInput.value = safe.omegaSamples
+  }
+
+  function renderParameterInputs() {
+    const preset = getPresetById(state.activePresetId)
+    if (state.activeMode !== 'preset' || preset.parameters.length === 0) {
+      elements.parameterGroup.classList.add('hidden')
+      elements.parameterRow.innerHTML = ''
+      return
+    }
+
+    elements.parameterGroup.classList.remove('hidden')
+    elements.parameterRow.innerHTML = ''
+
+    preset.parameters.forEach((parameter) => {
+      const label = document.createElement('label')
+      label.innerHTML = `
+        <span>${parameter.label}</span>
+        <input
+          type="number"
+          min="${parameter.min}"
+          max="${parameter.max}"
+          step="${parameter.step}"
+          value="${state.sequenceParams[preset.id][parameter.key]}"
+        />
+      `
+      const input = label.querySelector('input')
+      input.addEventListener('input', (event) => {
+        const value = parseFloat(event.target.value)
+        if (Number.isNaN(value)) {
+          return
+        }
+        state.sequenceParams[preset.id][parameter.key] = value
+        render()
+      })
+      elements.parameterRow.appendChild(label)
+    })
+  }
+
+  function renderCustomError() {
+    if (state.customError) {
+      elements.customError.classList.remove('hidden')
+      elements.customError.textContent = state.customError
+    } else {
+      elements.customError.classList.add('hidden')
+      elements.customError.textContent = ''
+    }
+  }
+
+  function renderMetrics(metrics) {
+    elements.metricGrid.innerHTML = ''
+    metrics.forEach((metric) => {
+      const article = document.createElement('article')
+      article.className = 'metric-card'
+      article.innerHTML = `
+        <span class="metric-card__label">${metric.label}</span>
+        <strong>${metric.value}</strong>
+      `
+      elements.metricGrid.appendChild(article)
+    })
+  }
+
+  function renderSequenceTable(samples) {
+    const visible = samples.filter((sample) => Math.abs(sample.value) > 0.001)
+    const rows = (visible.length > 0 ? visible : samples.slice(0, 10)).slice(0, 10)
+
+    elements.sequenceTableBody.innerHTML = rows
+      .map(
+        (row) =>
+          `<tr><td>${formatDisplayNumber(row.n)}</td><td>${formatDisplayNumber(row.value)}</td></tr>`,
+      )
+      .join('')
+  }
+
+  function renderSpectrumTable(spectrum) {
+    const rowCount = Math.min(10, spectrum.length)
+    const step = Math.max(1, Math.floor(spectrum.length / rowCount))
+    const rows = []
+
+    for (let index = 0; index < spectrum.length; index += step) {
+      rows.push(spectrum[index])
+      if (rows.length === rowCount) {
+        break
+      }
+    }
+
+    elements.spectrumTableBody.innerHTML = rows
+      .map(
+        (row) =>
+          `<tr><td>${formatOmegaLabel(row.omega)}</td><td>${formatDisplayNumber(row.magnitude)}</td><td>${formatDisplayNumber(row.phase)}</td></tr>`,
+      )
+      .join('')
+  }
+
+  function renderUploadMeta() {
+    if (!state.selectedFile) {
+      elements.uploadMeta.innerHTML = `
+        <div>
+          <span class="upload-meta__label">状态</span>
+          <span>尚未选择文件</span>
+        </div>
+      `
+      return
+    }
+
+    elements.uploadMeta.innerHTML = `
+      <div>
+        <span class="upload-meta__label">文件名</span>
+        <span>${state.selectedFile.name}</span>
+      </div>
+      <div>
+        <span class="upload-meta__label">大小</span>
+        <span>${formatDisplayNumber(state.selectedFile.size / 1024)} KB</span>
+      </div>
+    `
+  }
+
+  function computeAnalysis() {
+    const safeRange = sanitizeRangeSettings(state.rangeSettings)
+    const nValues = buildIntegerRange(safeRange.nMin, safeRange.nMax)
+    const omegaValues = buildFrequencyRange(
+      safeRange.omegaMin,
+      safeRange.omegaMax,
+      safeRange.omegaSamples,
+    )
+
+    try {
+      let title
+      let formula
+      let theory
+      let analysisNote
+      let samples
+
+      if (state.activeMode === 'preset') {
+        const preset = getPresetById(state.activePresetId)
+        const params = state.sequenceParams[preset.id]
+        title = preset.name
+        formula = preset.formula(params)
+        theory = typeof preset.theory === 'function' ? preset.theory(params) : preset.theory
+        analysisNote = preset.analysisNote
+        samples = nValues.map((n) => ({
+          n,
+          value: round2(preset.generator(n, params)),
+        }))
+      } else {
+        title = '自定义序列'
+        formula = state.committedExpression
+        theory = '由当前表达式定义'
+        analysisNote = '按当前 n 范围内的离散样本进行数值 DTFT 求和。'
+        samples = evaluateCustomSequence(state.committedExpression, nValues)
+      }
+
+      const spectrum = computeNumericDtft(samples, omegaValues)
+
+      return {
+        hasError: false,
+        title,
+        formula,
+        theory,
+        analysisNote,
+        samples,
+        spectrum,
+        metrics: buildSummaryMetrics(samples, spectrum),
+      }
+    } catch (error) {
+      return {
+        hasError: true,
+        message: error instanceof Error ? error.message : '计算失败，请检查输入参数。',
+      }
+    }
+  }
+
+  function renderPlot(container, config) {
+    container.innerHTML = ''
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    const width = 820
+    const height = 320
+    const padding = { top: 22, right: 18, bottom: 48, left: 60 }
+    const points = config.data
+
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
+    svg.setAttribute('role', 'img')
+    svg.setAttribute('aria-label', config.title)
+
+    const xDomain = normalizeDomain(points.map((point) => point.x), false)
+    const yDomain = normalizeDomain(points.map((point) => point.y), true)
+    const xTicks = createTicks(xDomain.min, xDomain.max, 6)
+    const yTicks = createTicks(yDomain.min, yDomain.max, 5)
+    const baselineY = mapValue(
+      0,
+      yDomain.min,
+      yDomain.max,
+      height - padding.bottom,
+      padding.top,
+    )
+
+    svg.appendChild(
+      svgNode('rect', {
+        x: 0,
+        y: 0,
+        width,
+        height,
+        rx: 24,
+        fill: getCssVariable('--plot-bg'),
+      }),
+    )
+
+    xTicks.forEach((tick) => {
+      const x = mapValue(tick, xDomain.min, xDomain.max, padding.left, width - padding.right)
+      svg.appendChild(
+        svgNode('line', {
+          x1: x,
+          y1: padding.top,
+          x2: x,
+          y2: height - padding.bottom,
+          stroke: 'rgba(120, 147, 173, 0.16)',
+          'stroke-width': 1,
+        }),
+      )
+      svg.appendChild(
+        svgText(x, height - 22, config.xFormatter(tick), {
+          'text-anchor': 'middle',
+        }),
+      )
+    })
+
+    yTicks.forEach((tick) => {
+      const y = mapValue(tick, yDomain.min, yDomain.max, height - padding.bottom, padding.top)
+      svg.appendChild(
+        svgNode('line', {
+          x1: padding.left,
+          y1: y,
+          x2: width - padding.right,
+          y2: y,
+          stroke: 'rgba(120, 147, 173, 0.16)',
+          'stroke-width': 1,
+        }),
+      )
+      svg.appendChild(svgText(18, y + 4, config.yFormatter(tick)))
+    })
+
+    svg.appendChild(
+      svgNode('line', {
+        x1: padding.left,
+        y1: baselineY,
+        x2: width - padding.right,
+        y2: baselineY,
+        stroke: 'rgba(31, 88, 115, 0.42)',
+        'stroke-width': 1.2,
+      }),
+    )
+    svg.appendChild(
+      svgNode('line', {
+        x1: padding.left,
+        y1: padding.top,
+        x2: padding.left,
+        y2: height - padding.bottom,
+        stroke: 'rgba(93, 113, 130, 0.4)',
+        'stroke-width': 1.2,
+      }),
+    )
+
+    if (config.mode === 'line') {
+      const polyline = svgNode('polyline', {
+        points: points
+          .map((point) => {
+            const x = mapValue(
+              point.x,
+              xDomain.min,
+              xDomain.max,
+              padding.left,
+              width - padding.right,
+            )
+            const y = mapValue(
+              point.y,
+              yDomain.min,
+              yDomain.max,
+              height - padding.bottom,
+              padding.top,
+            )
+            return `${x},${y}`
+          })
+          .join(' '),
+        fill: 'none',
+        stroke: config.stroke,
+        'stroke-width': 3.25,
+        'stroke-linejoin': 'round',
+        'stroke-linecap': 'round',
+      })
+      svg.appendChild(polyline)
+
+      points.forEach((point) => {
+        const x = mapValue(point.x, xDomain.min, xDomain.max, padding.left, width - padding.right)
+        const y = mapValue(
+          point.y,
+          yDomain.min,
+          yDomain.max,
+          height - padding.bottom,
+          padding.top,
+        )
+        svg.appendChild(
+          svgNode('circle', {
+            cx: x,
+            cy: y,
+            r: 2.6,
+            fill: config.stroke,
+            opacity: 0.95,
+          }),
+        )
+      })
+    } else {
+      points.forEach((point) => {
+        const x = mapValue(point.x, xDomain.min, xDomain.max, padding.left, width - padding.right)
+        const y = mapValue(
+          point.y,
+          yDomain.min,
+          yDomain.max,
+          height - padding.bottom,
+          padding.top,
+        )
+        svg.appendChild(
+          svgNode('line', {
+            x1: x,
+            y1: baselineY,
+            x2: x,
+            y2: y,
+            stroke: config.stroke,
+            'stroke-width': 2.25,
+            'stroke-linecap': 'round',
+          }),
+        )
+        svg.appendChild(
+          svgNode('circle', {
+            cx: x,
+            cy: y,
+            r: 4.8,
+            fill: config.stroke,
+          }),
+        )
+      })
+    }
+
+    const xAxisLabel = svgText(
+      (padding.left + width - padding.right) / 2,
+      height - 8,
+      config.xLabel,
+      { 'text-anchor': 'middle', 'font-weight': 600, 'font-size': 14, fill: 'rgba(52, 68, 87, 0.84)' },
+    )
+    const yAxisLabel = svgText(
+      18,
+      (padding.top + height - padding.bottom) / 2,
+      config.yLabel,
+      {
+        'text-anchor': 'middle',
+        'font-weight': 600,
+        'font-size': 14,
+        fill: 'rgba(52, 68, 87, 0.84)',
+        transform: `rotate(-90, 18, ${(padding.top + height - padding.bottom) / 2})`,
+      },
+    )
+    svg.appendChild(xAxisLabel)
+    svg.appendChild(yAxisLabel)
+    container.appendChild(svg)
+  }
+
+  function svgNode(tag, attributes) {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', tag)
+    Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value))
+    return node
+  }
+
+  function svgText(x, y, content, attributes) {
+    const node = svgNode('text', {
+      x,
+      y,
+      fill: 'rgba(77, 92, 108, 0.72)',
+      'font-size': 13,
+      'font-family': 'JetBrains Mono, Consolas, monospace',
+      ...attributes,
+    })
+    node.textContent = content
+    return node
+  }
+
+  function normalizeDomain(values, includeZero) {
+    const min = Math.min.apply(null, values)
+    const max = Math.max.apply(null, values)
+    let domainMin = includeZero ? Math.min(0, min) : min
+    let domainMax = includeZero ? Math.max(0, max) : max
+
+    if (Math.abs(domainMax - domainMin) < 1e-9) {
+      const pad = Math.abs(domainMax || 1) * 0.2
+      domainMin -= pad
+      domainMax += pad
+    } else {
+      const padding = (domainMax - domainMin) * 0.12
+      domainMin -= padding
+      domainMax += padding
+    }
+
+    return { min: domainMin, max: domainMax }
+  }
+
+  function createTicks(min, max, count) {
+    if (Math.abs(max - min) < 1e-9) {
+      return [min]
+    }
+    const ticks = []
+    for (let index = 0; index < count; index += 1) {
+      const ratio = index / (count - 1)
+      ticks.push(min + (max - min) * ratio)
+    }
+    return ticks
+  }
+
+  function mapValue(value, min, max, start, end) {
+    if (Math.abs(max - min) < 1e-9) {
+      return (start + end) / 2
+    }
+    return start + ((value - min) / (max - min)) * (end - start)
+  }
+
+  function round2(value) {
+    if (!Number.isFinite(value)) {
+      return 0
+    }
+    const rounded = Math.round((value + Number.EPSILON) * 100) / 100
+    return Object.is(rounded, -0) ? 0 : rounded
+  }
+
+  function formatDisplayNumber(value) {
+    const rounded = round2(value)
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace(/\.?0+$/, '')
+  }
+
+  function formatOmegaLabel(value) {
+    const rounded = round2(value)
+    const ratio = rounded / Math.PI
+    if (Math.abs(ratio) < 0.05) {
+      return '0'
+    }
+    if (Math.abs(Math.abs(ratio) - 1) < 0.05) {
+      return rounded < 0 ? '-π' : 'π'
+    }
+    if (Math.abs(Math.abs(ratio) - 0.5) < 0.05) {
+      return rounded < 0 ? '-π/2' : 'π/2'
+    }
+    return formatDisplayNumber(rounded)
+  }
+
+  function buildIntegerRange(start, end) {
+    const result = []
+    for (let value = start; value <= end; value += 1) {
+      result.push(value)
+    }
+    return result
+  }
+
+  function buildFrequencyRange(start, end, sampleCount) {
+    if (sampleCount <= 1) {
+      return [start]
+    }
+    const result = []
+    for (let index = 0; index < sampleCount; index += 1) {
+      const ratio = index / (sampleCount - 1)
+      result.push(start + (end - start) * ratio)
+    }
+    return result
+  }
+
+  function sanitizeRangeSettings(settings) {
+    const boundedNMin = Math.max(-80, Math.min(79, Math.round(settings.nMin)))
+    const boundedNMax = Math.max(-79, Math.min(80, Math.round(settings.nMax)))
+    const nMin = Math.min(boundedNMin, boundedNMax - 1)
+    const nMax = Math.max(boundedNMax, nMin + 1)
+    const omegaMin = Math.max(-TWO_PI, Math.min(TWO_PI - 0.1, settings.omegaMin))
+    const omegaMax = Math.max(omegaMin + 0.1, Math.min(TWO_PI, settings.omegaMax))
+    const omegaSamples = Math.max(64, Math.min(1024, Math.round(settings.omegaSamples)))
+
+    return { nMin, nMax, omegaMin, omegaMax, omegaSamples }
+  }
+
+  function getDefaultSequenceParams() {
+    const result = {}
+    SEQUENCE_PRESETS.forEach((preset) => {
+      result[preset.id] = { ...preset.defaultParams }
+    })
+    return result
+  }
+
+  function getPresetById(id) {
+    return SEQUENCE_PRESETS.find((preset) => preset.id === id) || SEQUENCE_PRESETS[0]
+  }
+
+  function computeNumericDtft(samples, omegaValues) {
+    return omegaValues.map((omega) => {
+      let real = 0
+      let imag = 0
+      samples.forEach((sample) => {
+        real += sample.value * Math.cos(omega * sample.n)
+        imag -= sample.value * Math.sin(omega * sample.n)
+      })
+      const magnitude = Math.sqrt(real * real + imag * imag)
+      const phase = magnitude < 0.01 ? 0 : Math.atan2(imag, real)
+      return {
+        omega: round2(omega),
+        magnitude: round2(magnitude),
+        phase: round2(phase),
+      }
+    })
+  }
+
+  function buildSummaryMetrics(samples, spectrum) {
+    const nonZeroCount = samples.filter((sample) => Math.abs(sample.value) > 0.001).length
+    const maxAmplitude = Math.max.apply(
+      null,
+      samples.map((sample) => Math.abs(sample.value)),
+    )
+    const maxMagnitude = Math.max.apply(
+      null,
+      spectrum.map((sample) => sample.magnitude),
+    )
+    const energy = samples.reduce((sum, sample) => sum + sample.value * sample.value, 0)
+    const phaseSpread =
+      spectrum.length === 0
+        ? 0
+        : Math.max.apply(
+            null,
+            spectrum.map((sample) => sample.phase),
+          ) -
+          Math.min.apply(
+            null,
+            spectrum.map((sample) => sample.phase),
+          )
+
+    return [
+      { label: '非零样本数', value: formatDisplayNumber(nonZeroCount) },
+      { label: '最大 |x[n]|', value: formatDisplayNumber(maxAmplitude) },
+      { label: '最大 |X|', value: formatDisplayNumber(maxMagnitude) },
+      { label: '样本能量', value: formatDisplayNumber(energy) },
+      { label: '相位跨度', value: `${formatDisplayNumber(phaseSpread)} rad` },
+    ]
+  }
+
+  function normalizeExpression(expression) {
+    return expression.trim().replace(/π/g, 'pi').replace(/，/g, ',').replace(/\^/g, '**')
+  }
+
+  function evaluateCustomSequence(expression, nValues) {
+    const normalized = normalizeExpression(expression)
+    const safePattern = /^[0-9a-zA-Z_+\-*/^().,\sπ]+$/
+    const forbiddenTokens = [
+      'window',
+      'document',
+      'globalThis',
+      'Function',
+      'eval',
+      'constructor',
+      'import',
+      'new',
+      ';',
+      '[',
+      ']',
+      '{',
+      '}',
+      '=',
+    ]
+
+    if (!normalized) {
+      throw new Error('请输入自定义序列表达式。')
+    }
+
+    if (!safePattern.test(normalized)) {
+      throw new Error('表达式仅支持数字、括号、运算符和内置序列函数。')
+    }
+
+    if (forbiddenTokens.some((token) => normalized.indexOf(token) >= 0)) {
+      throw new Error('表达式包含不支持的字符或关键字，请使用内置函数重新输入。')
+    }
+
+    const helpers = {
+      pi: Math.PI,
+      abs: Math.abs,
+      pow: Math.pow,
+      delta: (offset) => (Math.abs(offset) < 1e-9 ? 1 : 0),
+      impulse: (offset) => (Math.abs(offset) < 1e-9 ? 1 : 0),
+      u: (offset) => (offset >= 0 ? 1 : 0),
+      step: (offset) => (offset >= 0 ? 1 : 0),
+      rect: (offset, width) => (offset >= 0 && offset <= (width || 6) - 1 ? 1 : 0),
+      tri: (offset, width) =>
+        Math.abs(offset) > (width || 5) ? 0 : 1 - Math.abs(offset) / ((width || 5) + 1),
+      expseq: (a, index) => (index >= 0 ? Math.pow(a, index) : 0),
+      sinseq: (omega, index) => Math.sin(omega * index),
+      cosseq: (omega, index) => Math.cos(omega * index),
+    }
+
+    const evaluator = new Function(
+      'n',
+      'helpers',
+      '"use strict"; const { pi, abs, pow, delta, impulse, u, step, rect, tri, expseq, sinseq, cosseq } = helpers; return (' +
+        normalized +
+        ');',
+    )
+
+    return nValues.map((n) => {
+      const value = evaluator(n, helpers)
+      if (!Number.isFinite(value)) {
+        throw new Error('表达式结果不是有限数，请检查是否存在除零或非法运算。')
+      }
+      return { n, value: round2(value) }
+    })
+  }
+
+  function getCssVariable(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  }
+})()
+
+</script>
+  </body>
+</html>
+
