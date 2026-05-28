@@ -1,13 +1,14 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="数字信号处理三部分综合分析 Web 应用：典型离散序列、采样与插值重构、Z 变换零极点。"
+      content="数字信号处理综合分析 Web 应用，包含典型离散序列、采样与插值重构、Z 变换零极点、DFS、DFT、频域采样、CZT、DFT 应用与 FFT。"
     />
     <title>数字信号处理综合分析器</title>
+    <link rel="icon" href="data:," />
     <style>
 :root {
   --font-sans: 'IBM Plex Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei',
@@ -141,6 +142,46 @@ code {
   line-height: 1.6;
 }
 
+.topbar-nav {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at top left, rgba(36, 183, 160, 0.08), transparent 34%),
+    var(--panel);
+}
+
+.module-switcher {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.module-switcher__button {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(111, 132, 153, 0.14);
+  background: rgba(247, 251, 255, 0.96);
+  color: var(--text-main);
+  font-weight: 700;
+  font-size: 0.96rem;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.module-switcher__button.active {
+  color: var(--accent-navy);
+  border-color: rgba(36, 183, 160, 0.38);
+  background:
+    radial-gradient(circle at top left, rgba(36, 183, 160, 0.12), transparent 38%),
+    rgba(255, 255, 255, 0.98);
+  box-shadow: var(--shadow-sm);
+}
+
 .section-switcher {
   display: flex;
   align-items: center;
@@ -175,6 +216,10 @@ code {
   box-shadow: inset 0 0 0 1.4px rgba(36, 183, 160, 0.45);
 }
 
+#foundation-subnav.is-hidden {
+  display: none;
+}
+
 .upload-shortcut {
   display: grid;
   align-content: center;
@@ -204,6 +249,14 @@ code {
   display: grid;
   grid-template-columns: minmax(280px, 310px) minmax(0, 1fr);
   gap: 18px;
+}
+
+.module-panel {
+  display: none;
+}
+
+.module-panel.active {
+  display: block;
 }
 
 .panel {
@@ -948,6 +1001,10 @@ tbody td {
     padding: 12px;
   }
 
+  .module-switcher {
+    grid-template-columns: 1fr;
+  }
+
   .section-switcher {
     flex-direction: column;
   }
@@ -989,154 +1046,262 @@ tbody td {
   <body>
     <div class="page-shell">
       <header class="topbar">
-        <div class="brand-block">
+        <div class="brand-block panel">
           <p class="eyebrow">DSP Analysis Studio</p>
           <h1>数字信号处理综合分析器</h1>
           <p class="brand-block__text">
-            典型离散序列、采样与插值重构、Z 变换零极点，一页内集中展示与交互分析。
+            典型序列、采样重构、Z 变换、DFS、DFT、CZT、DFT 应用与 FFT 一页联动展示。
           </p>
         </div>
 
-        <nav class="section-switcher" aria-label="分析模块切换">
-          <button type="button" class="section-switcher__button active" data-section="discrete">
-            典型离散序列
-          </button>
-          <button type="button" class="section-switcher__button" data-section="sampling">
-            采样与插值重构
-          </button>
-          <button type="button" class="section-switcher__button" data-section="zplane">
-            Z变换零极点
-          </button>
-        </nav>
+        <section class="topbar-nav panel">
+          <nav class="module-switcher" aria-label="总导航">
+            <button type="button" class="module-switcher__button active" data-main-module="foundation">
+              基础分析
+            </button>
+            <button type="button" class="module-switcher__button" data-main-module="extensions">
+              扩展变换
+            </button>
+            <button type="button" class="module-switcher__button" data-main-module="dft-apps">
+              DFT应用
+            </button>
+            <button type="button" class="module-switcher__button" data-main-module="fft">
+              FFT
+            </button>
+          </nav>
 
-        <label class="upload-shortcut" for="global-upload">
+          <nav id="foundation-subnav" class="section-switcher" aria-label="基础分析功能切换">
+            <button type="button" class="section-switcher__button active" data-section="discrete">
+              典型离散序列
+            </button>
+            <button type="button" class="section-switcher__button" data-section="sampling">
+              采样与插值重构
+            </button>
+            <button type="button" class="section-switcher__button" data-section="zplane">
+              Z变换零极点
+            </button>
+          </nav>
+        </section>
+
+        <label class="upload-shortcut panel" for="global-upload">
           <input
             id="global-upload"
             type="file"
             accept=".txt,.csv,audio/*,video/*"
           />
           <span class="upload-shortcut__title">上传信号 / 音频 / 视频文件</span>
-          <span class="upload-shortcut__meta">预留分析接口与原信号预览</span>
+          <span class="upload-shortcut__meta">保留原信号预览与后续分析接口</span>
         </label>
       </header>
 
-      <main class="content-grid">
-        <aside class="sidebar panel">
-          <div class="panel__header sidebar__header">
-            <div>
-              <p id="sidebar-eyebrow" class="eyebrow"></p>
-              <h2 id="sidebar-title"></h2>
-            </div>
-          </div>
-          <p id="sidebar-description" class="sidebar__description"></p>
-          <div id="sequence-list" class="sequence-list"></div>
-        </aside>
-
-        <section class="workspace">
-          <section class="panel controls-panel">
-            <div class="panel__header">
+      <section id="module-foundation" class="module-panel active">
+        <main class="content-grid">
+          <aside class="sidebar panel">
+            <div class="panel__header sidebar__header">
               <div>
-                <p class="eyebrow">分析控制</p>
-                <h2 id="control-title">范围、自定义输入与参数</h2>
-              </div>
-              <button id="reset-button" type="button" class="text-button">
-                恢复当前模块默认参数
-              </button>
-            </div>
-            <div id="section-controls" class="section-controls"></div>
-            <p class="drag-tip">可拖动右侧图形平移范围，查看不同区间下的曲线。</p>
-          </section>
-
-          <section class="overview-grid">
-            <section class="panel">
-              <div class="panel__header">
-                <div>
-                  <p class="eyebrow">当前分析对象</p>
-                  <h2 id="summary-title"></h2>
-                </div>
-                <span id="summary-chip" class="panel-chip"></span>
-              </div>
-              <div id="summary-body" class="summary-body"></div>
-            </section>
-
-            <section class="panel">
-              <div class="panel__header">
-                <div>
-                  <p class="eyebrow">上传与原信号预览</p>
-                  <h2>文件接口</h2>
-                </div>
-              </div>
-              <div id="upload-preview" class="upload-preview"></div>
-            </section>
-          </section>
-
-          <section id="metric-grid" class="metric-grid"></section>
-
-          <section id="chart-grid" class="chart-grid"></section>
-
-          <section class="detail-grid">
-            <section class="panel">
-              <div class="panel__header">
-                <div>
-                  <p class="eyebrow">结果采样</p>
-                  <h2 id="table-title"></h2>
-                </div>
-              </div>
-              <div id="table-area" class="table-area"></div>
-            </section>
-
-            <section class="panel">
-              <div class="panel__header">
-                <div>
-                  <p class="eyebrow">说明与约束</p>
-                  <h2>说明</h2>
-                </div>
-              </div>
-              <div id="notes-area" class="notes-area"></div>
-            </section>
-          </section>
-        </section>
-      </main>
-
-      <section class="extension-lab">
-        <section class="panel extension-lab__header">
-          <div class="panel__header">
-            <div>
-              <p class="eyebrow">扩展理论与变换实验区</p>
-              <h2>DFS、DFT、频域采样定理与 CZT</h2>
-            </div>
-            <span class="panel-chip">在不改动原功能的前提下追加</span>
-          </div>
-          <nav class="extension-topic-switcher" aria-label="扩展主题切换">
-            <button type="button" class="extension-topic-switcher__button active" data-extension-topic="dfs">
-              周期序列 DFS
-            </button>
-            <button type="button" class="extension-topic-switcher__button" data-extension-topic="dft">
-              有限序列 DFT
-            </button>
-            <button type="button" class="extension-topic-switcher__button" data-extension-topic="sampling">
-              频域采样定理
-            </button>
-            <button type="button" class="extension-topic-switcher__button" data-extension-topic="czt">
-              线性调频 Z 变换
-            </button>
-          </nav>
-        </section>
-
-        <section id="extension-root" class="extension-topic-grid">
-          <aside class="panel extension-theory">
-            <div class="panel__header">
-              <div>
-                <p class="eyebrow">定义与性质</p>
-                <h2 id="extension-topic-title"></h2>
+                <p id="sidebar-eyebrow" class="eyebrow"></p>
+                <h2 id="sidebar-title"></h2>
               </div>
             </div>
-            <p id="extension-topic-description" class="sidebar__description"></p>
-            <div id="extension-theory-list" class="extension-theory-list"></div>
+            <p id="sidebar-description" class="sidebar__description"></p>
+            <div id="sequence-list" class="sequence-list"></div>
           </aside>
 
-          <section class="panel extension-content-panel">
-            <div id="extension-content"></div>
+          <section class="workspace">
+            <section class="panel controls-panel">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">分析控制</p>
+                  <h2 id="control-title">范围、自定义输入与参数</h2>
+                </div>
+                <button id="reset-button" type="button" class="text-button">
+                  恢复当前模块默认参数
+                </button>
+              </div>
+              <div id="section-controls" class="section-controls"></div>
+              <p class="drag-tip">可拖动右侧图形平移范围，查看不同区间下的曲线。</p>
+            </section>
+
+            <section class="overview-grid">
+              <section class="panel">
+                <div class="panel__header">
+                  <div>
+                    <p class="eyebrow">当前分析对象</p>
+                    <h2 id="summary-title"></h2>
+                  </div>
+                  <span id="summary-chip" class="panel-chip"></span>
+                </div>
+                <div id="summary-body" class="summary-body"></div>
+              </section>
+
+              <section class="panel">
+                <div class="panel__header">
+                  <div>
+                    <p class="eyebrow">上传与原信号预览</p>
+                    <h2>文件接口</h2>
+                  </div>
+                </div>
+                <div id="upload-preview" class="upload-preview"></div>
+              </section>
+            </section>
+
+            <section id="metric-grid" class="metric-grid"></section>
+
+            <section id="chart-grid" class="chart-grid"></section>
+
+            <section class="detail-grid">
+              <section class="panel">
+                <div class="panel__header">
+                  <div>
+                    <p class="eyebrow">结果采样</p>
+                    <h2 id="table-title"></h2>
+                  </div>
+                </div>
+                <div id="table-area" class="table-area"></div>
+              </section>
+
+              <section class="panel">
+                <div class="panel__header">
+                  <div>
+                    <p class="eyebrow">说明与约束</p>
+                    <h2>说明</h2>
+                  </div>
+                </div>
+                <div id="notes-area" class="notes-area"></div>
+              </section>
+            </section>
+          </section>
+        </main>
+      </section>
+
+      <section id="module-extensions" class="module-panel">
+        <section class="extension-lab">
+          <section class="panel extension-lab__header">
+            <div class="panel__header">
+              <div>
+                <p class="eyebrow">扩展理论与变换实验区</p>
+                <h2>DFS、DFT、频域采样定理与 CZT</h2>
+              </div>
+              <span class="panel-chip">保留原功能基础上继续扩展</span>
+            </div>
+            <nav class="extension-topic-switcher" aria-label="扩展主题切换">
+              <button type="button" class="extension-topic-switcher__button active" data-extension-topic="dfs">
+                周期序列 DFS
+              </button>
+              <button type="button" class="extension-topic-switcher__button" data-extension-topic="dft">
+                有限序列 DFT
+              </button>
+              <button type="button" class="extension-topic-switcher__button" data-extension-topic="sampling">
+                频域采样定理
+              </button>
+              <button type="button" class="extension-topic-switcher__button" data-extension-topic="czt">
+                线性调频 Z 变换
+              </button>
+            </nav>
+          </section>
+
+          <section id="extension-root" class="extension-topic-grid">
+            <aside class="panel extension-theory">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">定义与性质</p>
+                  <h2 id="extension-topic-title"></h2>
+                </div>
+              </div>
+              <p id="extension-topic-description" class="sidebar__description"></p>
+              <div id="extension-theory-list" class="extension-theory-list"></div>
+            </aside>
+
+            <section class="panel extension-content-panel">
+              <div id="extension-content"></div>
+            </section>
+          </section>
+        </section>
+      </section>
+
+      <section id="module-dft-apps" class="module-panel">
+        <section class="extension-lab">
+          <section class="panel extension-lab__header">
+            <div class="panel__header">
+              <div>
+                <p class="eyebrow">新增板块</p>
+                <h2>离散傅里叶变换的应用</h2>
+              </div>
+              <span class="panel-chip">点击导航切换功能</span>
+            </div>
+            <nav class="extension-topic-switcher" aria-label="DFT 应用功能切换">
+              <button type="button" class="extension-topic-switcher__button active" data-dft-app-topic="distortion">
+                频谱近似与失真
+              </button>
+              <button type="button" class="extension-topic-switcher__button" data-dft-app-topic="convolution">
+                卷积与分块法
+              </button>
+              <button type="button" class="extension-topic-switcher__button" data-dft-app-topic="correlation">
+                线性相关
+              </button>
+              <button type="button" class="extension-topic-switcher__button" data-dft-app-topic="cases">
+                工程案例
+              </button>
+            </nav>
+          </section>
+
+          <section id="dft-app-root" class="extension-topic-grid">
+            <aside class="panel extension-theory">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">定义与性质</p>
+                  <h2 id="dft-app-topic-title"></h2>
+                </div>
+              </div>
+              <p id="dft-app-topic-description" class="sidebar__description"></p>
+              <div id="dft-app-theory-list" class="extension-theory-list"></div>
+            </aside>
+
+            <section class="panel extension-content-panel">
+              <div id="dft-app-content"></div>
+            </section>
+          </section>
+        </section>
+      </section>
+
+      <section id="module-fft" class="module-panel">
+        <section class="extension-lab">
+          <section class="panel extension-lab__header">
+            <div class="panel__header">
+              <div>
+                <p class="eyebrow">新增板块</p>
+                <h2>快速傅里叶变换 FFT</h2>
+              </div>
+              <span class="panel-chip">复杂度、DIT、DIF</span>
+            </div>
+            <nav class="extension-topic-switcher" aria-label="FFT 功能切换">
+              <button type="button" class="extension-topic-switcher__button active" data-fft-topic="complexity">
+                运算瓶颈对比
+              </button>
+              <button type="button" class="extension-topic-switcher__button" data-fft-topic="dit">
+                DIT FFT
+              </button>
+              <button type="button" class="extension-topic-switcher__button" data-fft-topic="dif">
+                DIF FFT
+              </button>
+            </nav>
+          </section>
+
+          <section id="fft-root" class="extension-topic-grid">
+            <aside class="panel extension-theory">
+              <div class="panel__header">
+                <div>
+                  <p class="eyebrow">定义与性质</p>
+                  <h2 id="fft-topic-title"></h2>
+                </div>
+              </div>
+              <p id="fft-topic-description" class="sidebar__description"></p>
+              <div id="fft-theory-list" class="extension-theory-list"></div>
+            </aside>
+
+            <section class="panel extension-content-panel">
+              <div id="fft-content"></div>
+            </section>
           </section>
         </section>
       </section>
@@ -1667,6 +1832,153 @@ tbody td {
     },
   ]
 
+  const dftApplicationTopics = [
+    {
+      id: 'distortion',
+      title: '利用 DFT 分析模拟信号频谱的近似过程',
+      description: '展示模拟信号经采样、截断、DFT 后得到频谱近似的流程，并给出三类常见失真及补救措施。',
+      theory: [
+        {
+          text: '频谱近似：先把连续信号采样并截成有限长度序列，再做 DFT 得到离散频域采样点。',
+          formula: 'x_a(t) → x[n]=x_a(nT_s) → x_N[n]w[n] → X[k]',
+        },
+        {
+          text: '频谱混叠：采样频率低于奈奎斯特频率时，高频分量会折叠到低频区。',
+          formula: 'f_s &gt; 2f_{max}',
+        },
+        {
+          text: '频谱泄露：信号频率不落在 DFT 栅点上时，能量会向相邻频点扩散。',
+          formula: 'f_0 = (m + \\delta)f_s/N,\\; \\delta \\neq 0',
+        },
+        {
+          text: '栅栏效应：频率采样点间隔有限，峰值可能落在采样点之间。',
+          formula: '\\Delta f = f_s / N,\\; M&gt;N \\text{ 时零填充可加密频点}',
+        },
+      ],
+    },
+    {
+      id: 'convolution',
+      title: '线性卷积、圆周卷积与分块计算',
+      description: '输入有限长序列，比较线性卷积与圆周卷积，并用重叠相加法与重叠保留法展示分块过程。',
+      theory: [
+        {
+          text: '线性卷积：输出长度为 Lx + Lh - 1，反映有限长序列的真实卷积结果。',
+          formula: 'y[n] = \\sum_k x[k]h[n-k]',
+        },
+        {
+          text: '圆周卷积关系：当补零长度 N 足够大时，N 点圆周卷积等于线性卷积。',
+          formula: 'N \\ge L_x+L_h-1 \\Rightarrow y[n]=IDFT\\{X_N[k]H_N[k]\\}',
+        },
+        {
+          text: '重叠相加法：把输入分块后分别卷积，再按块移位相加。',
+          formula: 'y[n] = \\sum_r x_r[n] * h[n]',
+        },
+        {
+          text: '重叠保留法：相邻输入块保留 M-1 点重叠，再丢弃每块前 M-1 个失真点。',
+          formula: 'y_r[n] = (x_r[n] \\otimes_N h[n])_{\\text{discard first } M-1}',
+        },
+      ],
+    },
+    {
+      id: 'correlation',
+      title: '线性相关',
+      description: '输入两个序列，按定义与卷积等价关系计算线性相关，并以流程图说明实现步骤。',
+      theory: [
+        {
+          text: '线性相关定义：滑动一个序列并与另一个序列逐项相乘求和。',
+          formula: 'r_{xy}[l] = \\sum_n x[n]y[n-l]',
+        },
+        {
+          text: '与卷积的关系：线性相关可看成一个序列与另一个反折序列的线性卷积。',
+          formula: 'r_{xy}[l] = x[l] * y[-l]',
+        },
+        {
+          text: '峰值判定：相关峰值对应两序列最佳对齐位置，常用于检测与同步。',
+          formula: 'l_{peak} = \\arg\\max_l\\; r_{xy}[l]',
+        },
+      ],
+    },
+    {
+      id: 'cases',
+      title: 'DFT 工程案例',
+      description: '给出水下目标检测、调频连续波测距雷达、PD 雷达脉冲压缩三个应用场景的典型流程与图示。',
+      theory: [
+        {
+          text: '水下目标检测：对回波做谱分析，识别目标特征频率与能量峰。',
+          formula: 'X[k] = DFT\\{x_{echo}[n]\\}',
+        },
+        {
+          text: 'FMCW 测距：发射和回波混频后得到拍频，再通过频谱峰值反推距离。',
+          formula: 'R \\propto f_b,\\; f_b = |f_{rx} - f_{tx}|',
+        },
+        {
+          text: '脉冲压缩：发射编码脉冲后做匹配滤波，压缩成窄主瓣提升分辨率。',
+          formula: 'y[n] = x[n] * h_m[n],\\; h_m[n]=x^*[-n]',
+        },
+      ],
+    },
+  ]
+
+  const fftTopics = [
+    {
+      id: 'complexity',
+      title: 'DFT 与 FFT 的运算特点',
+      description: '比较 DFT 的 O(N²) 运算瓶颈与 FFT 的 O(Nlog₂N) 结构优势，展示规模增大时的差异。',
+      theory: [
+        {
+          text: 'DFT 直接计算：每个频点都要与所有时域样本相乘累加，复杂度高。',
+          formula: 'C_{DFT} \\approx N^2',
+        },
+        {
+          text: 'FFT 核心思想：利用对称性与周期性把大规模 DFT 递归分解成小规模 DFT。',
+          formula: 'C_{FFT} \\approx N\\log_2N',
+        },
+        {
+          text: '蝶形运算：通过固定结构复用中间结果，减少重复乘法与加法。',
+          formula: 'a\\pm W_N^k b',
+        },
+      ],
+    },
+    {
+      id: 'dit',
+      title: '按时间抽取 DIT-FFT',
+      description: '展示按时间抽取的偶奇分解原理、8 点输入序列计算结果与不同视图下的蝶形流图。',
+      theory: [
+        {
+          text: 'DIT 分解：先按时域偶奇样本拆分，再对子问题递归求解。',
+          formula: 'X[k] = E[k] + W_N^kO[k],\\; X[k+N/2] = E[k] - W_N^kO[k]',
+        },
+        {
+          text: '输入重排：迭代实现常先做按位倒序重排，再逐级蝶形计算。',
+          formula: 'n = (b_{m-1}\\cdots b_0)_2 \\Rightarrow n_r = (b_0\\cdots b_{m-1})_2',
+        },
+        {
+          text: '三级蝶形：8 点 DIT-FFT 可拆成 3 级 2 点蝶形。',
+          formula: 'N=8 \\Rightarrow \\log_2N = 3',
+        },
+      ],
+    },
+    {
+      id: 'dif',
+      title: '按频率抽取 DIF-FFT',
+      description: '展示按频率抽取的首级全长蝶形、输入序列计算结果与不同视图下的蝶形流图。',
+      theory: [
+        {
+          text: 'DIF 分解：先在整段序列上做蝶形，再把结果继续拆成更小的频域子问题。',
+          formula: 'x_u[n]=x[n]+x[n+N/2],\\; x_l[n]=(x[n]-x[n+N/2])W_N^n',
+        },
+        {
+          text: '输出重排：迭代 DIF 常得到按位倒序的频域结果，再恢复自然顺序。',
+          formula: 'X_{natural}[k] = X_{bit-reversed}[k_r]',
+        },
+        {
+          text: '三级蝶形：8 点 DIF-FFT 同样包含 3 级蝶形，但配对顺序与 DIT 相反。',
+          formula: 'N=8 \\Rightarrow \\log_2N = 3',
+        },
+      ],
+    },
+  ]
+
   const dfsExamplePresets = [
     { id: 'square4', name: '四点方波', period: [1, 1, 0, 0] },
     { id: 'cos8', name: '八点余弦', period: Array.from({ length: 8 }, (_, n) => round2(Math.cos((TAU * n) / 8))) },
@@ -1703,6 +2015,7 @@ tbody td {
   }
 
   const state = {
+    activeMainModule: 'foundation',
     activeSection: 'discrete',
     upload: {
       file: null,
@@ -1773,9 +2086,34 @@ tbody td {
         wAngle: round2(TAU / 48),
       },
     },
+    dftApps: {
+      activeTopic: 'distortion',
+      convX: '1, 2, 1, 0, 1, 2, 0, 1',
+      convH: '1, -1, 2',
+      blockLength: 4,
+      convStep: 0,
+      corrX: '1, 2, 0, 1, 0',
+      corrY: '1, 0, 1',
+      caseId: 'underwater',
+    },
+    fftLab: {
+      activeTopic: 'complexity',
+      ditSequence: '1, 2, 3, 4, 0, 0, 0, 0',
+      difSequence: '1, 2, 3, 4, 0, 0, 0, 0',
+      ditView: 'overview',
+      difView: 'overview',
+    },
   }
 
   const elements = {
+    moduleButtons: Array.from(document.querySelectorAll('.module-switcher__button')),
+    foundationSubnav: document.getElementById('foundation-subnav'),
+    modulePanels: {
+      foundation: document.getElementById('module-foundation'),
+      extensions: document.getElementById('module-extensions'),
+      'dft-apps': document.getElementById('module-dft-apps'),
+      fft: document.getElementById('module-fft'),
+    },
     sectionButtons: Array.from(document.querySelectorAll('.section-switcher__button')),
     uploadInput: document.getElementById('global-upload'),
     sidebarEyebrow: document.getElementById('sidebar-eyebrow'),
@@ -1800,6 +2138,18 @@ tbody td {
     extensionTopicDescription: document.getElementById('extension-topic-description'),
     extensionTheoryList: document.getElementById('extension-theory-list'),
     extensionContent: document.getElementById('extension-content'),
+    dftAppRoot: document.getElementById('dft-app-root'),
+    dftAppTopicButtons: Array.from(document.querySelectorAll('[data-dft-app-topic]')),
+    dftAppTopicTitle: document.getElementById('dft-app-topic-title'),
+    dftAppTopicDescription: document.getElementById('dft-app-topic-description'),
+    dftAppTheoryList: document.getElementById('dft-app-theory-list'),
+    dftAppContent: document.getElementById('dft-app-content'),
+    fftRoot: document.getElementById('fft-root'),
+    fftTopicButtons: Array.from(document.querySelectorAll('[data-fft-topic]')),
+    fftTopicTitle: document.getElementById('fft-topic-title'),
+    fftTopicDescription: document.getElementById('fft-topic-description'),
+    fftTheoryList: document.getElementById('fft-theory-list'),
+    fftContent: document.getElementById('fft-content'),
   }
 
   let currentPayload = {
@@ -1810,6 +2160,18 @@ tbody td {
   render()
 
   function bindEvents() {
+    elements.moduleButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const moduleId = button.dataset.mainModule
+        if (!moduleId || moduleId === state.activeMainModule) {
+          return
+        }
+        stopExtensionAnimations()
+        state.activeMainModule = moduleId
+        render()
+      })
+    })
+
     elements.sectionButtons.forEach((button) => {
       button.addEventListener('click', () => {
         const section = button.dataset.section
@@ -1849,6 +2211,32 @@ tbody td {
     elements.extensionRoot.addEventListener('click', handleExtensionClick)
     elements.extensionRoot.addEventListener('input', handleExtensionInput)
     elements.extensionRoot.addEventListener('change', handleExtensionInput)
+    elements.dftAppTopicButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const topic = button.dataset.dftAppTopic
+        if (!topic || topic === state.dftApps.activeTopic) {
+          return
+        }
+        state.dftApps.activeTopic = topic
+        renderDftApplicationLab()
+      })
+    })
+    elements.dftAppRoot.addEventListener('click', handleDftAppClick)
+    elements.dftAppRoot.addEventListener('input', handleDftAppInput)
+    elements.dftAppRoot.addEventListener('change', handleDftAppInput)
+    elements.fftTopicButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const topic = button.dataset.fftTopic
+        if (!topic || topic === state.fftLab.activeTopic) {
+          return
+        }
+        state.fftLab.activeTopic = topic
+        renderFftLab()
+      })
+    })
+    elements.fftRoot.addEventListener('click', handleFftClick)
+    elements.fftRoot.addEventListener('input', handleFftInput)
+    elements.fftRoot.addEventListener('change', handleFftInput)
 
     window.addEventListener('pointermove', handleDragMove)
     window.addEventListener('pointerup', finishDrag)
@@ -1856,6 +2244,8 @@ tbody td {
     window.addEventListener('resize', () => {
       renderCharts(currentPayload.charts)
       renderExtensionLab()
+      renderDftApplicationLab()
+      renderFftLab()
     })
   }
 
@@ -2155,6 +2545,7 @@ tbody td {
   }
 
   function render() {
+    renderMainModules()
     ensureValidSelection()
     elements.sectionButtons.forEach((button) => {
       button.classList.toggle('active', button.dataset.section === state.activeSection)
@@ -2179,6 +2570,20 @@ tbody td {
     renderTable(payload.table)
     renderNotes(payload.notes)
     renderExtensionLab()
+    renderDftApplicationLab()
+    renderFftLab()
+  }
+
+  function renderMainModules() {
+    elements.moduleButtons.forEach((button) => {
+      button.classList.toggle('active', button.dataset.mainModule === state.activeMainModule)
+    })
+    Object.entries(elements.modulePanels).forEach(([moduleId, panel]) => {
+      if (panel) {
+        panel.classList.toggle('active', moduleId === state.activeMainModule)
+      }
+    })
+    elements.foundationSubnav.classList.toggle('is-hidden', state.activeMainModule !== 'foundation')
   }
 
   function renderSidebar(sidebar) {
@@ -2546,6 +2951,819 @@ tbody td {
       content = buildCztExtensionContent()
     }
     elements.extensionContent.innerHTML = `<div class="extension-content">${content}</div>`
+  }
+
+  function handleDftAppInput(event) {
+    const target = event.target
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) {
+      return
+    }
+
+    if (target.id === 'dftapp-conv-x') {
+      state.dftApps.convX = target.value
+      renderDftApplicationLab()
+      return
+    }
+    if (target.id === 'dftapp-conv-h') {
+      state.dftApps.convH = target.value
+      renderDftApplicationLab()
+      return
+    }
+    if (target.id === 'dftapp-block-length') {
+      const value = Number(target.value)
+      if (Number.isFinite(value)) {
+        state.dftApps.blockLength = clamp(Math.round(value), 2, 8)
+        state.dftApps.convStep = 0
+        renderDftApplicationLab()
+      }
+      return
+    }
+    if (target.id === 'dftapp-corr-x') {
+      state.dftApps.corrX = target.value
+      renderDftApplicationLab()
+      return
+    }
+    if (target.id === 'dftapp-corr-y') {
+      state.dftApps.corrY = target.value
+      renderDftApplicationLab()
+    }
+  }
+
+  function handleDftAppClick(event) {
+    const button = event.target.closest('[data-dft-app-action]')
+    if (!button) {
+      return
+    }
+    const action = button.dataset.dftAppAction
+    if (action === 'conv-prev') {
+      state.dftApps.convStep = Math.max(0, state.dftApps.convStep - 1)
+      renderDftApplicationLab()
+      return
+    }
+    if (action === 'conv-next') {
+      state.dftApps.convStep += 1
+      renderDftApplicationLab()
+      return
+    }
+    if (action === 'conv-reset') {
+      state.dftApps.convStep = 0
+      renderDftApplicationLab()
+      return
+    }
+    if (action === 'set-case') {
+      state.dftApps.caseId = button.dataset.caseId || state.dftApps.caseId
+      renderDftApplicationLab()
+    }
+  }
+
+  function handleFftInput(event) {
+    const target = event.target
+    if (!(target instanceof HTMLInputElement)) {
+      return
+    }
+    if (target.id === 'fft-dit-sequence') {
+      state.fftLab.ditSequence = target.value
+      renderFftLab()
+      return
+    }
+    if (target.id === 'fft-dif-sequence') {
+      state.fftLab.difSequence = target.value
+      renderFftLab()
+    }
+  }
+
+  function handleFftClick(event) {
+    const button = event.target.closest('[data-fft-action]')
+    if (!button) {
+      return
+    }
+    const action = button.dataset.fftAction
+    if (action === 'set-dit-view') {
+      state.fftLab.ditView = button.dataset.viewId || state.fftLab.ditView
+      renderFftLab()
+      return
+    }
+    if (action === 'set-dif-view') {
+      state.fftLab.difView = button.dataset.viewId || state.fftLab.difView
+      renderFftLab()
+    }
+  }
+
+  function renderDftApplicationLab() {
+    const topic = dftApplicationTopics.find((item) => item.id === state.dftApps.activeTopic) || dftApplicationTopics[0]
+    elements.dftAppTopicButtons.forEach((button) => {
+      button.classList.toggle('active', button.dataset.dftAppTopic === topic.id)
+    })
+    elements.dftAppTopicTitle.textContent = topic.title
+    elements.dftAppTopicDescription.textContent = topic.description
+    elements.dftAppTheoryList.innerHTML = topic.theory
+      .map(
+        (item) => `
+          <article class="extension-theory-item">
+            <p>${escapeHtml(item.text)}</p>
+            <div class="formula-math">${item.formula}</div>
+          </article>
+        `,
+      )
+      .join('')
+
+    let content = ''
+    if (topic.id === 'distortion') {
+      content = buildDftAppDistortionContent()
+    } else if (topic.id === 'convolution') {
+      content = buildDftAppConvolutionContent()
+    } else if (topic.id === 'correlation') {
+      content = buildDftAppCorrelationContent()
+    } else {
+      content = buildDftCaseContent()
+    }
+    elements.dftAppContent.innerHTML = `<div class="extension-content">${content}</div>`
+  }
+
+  function renderFftLab() {
+    const topic = fftTopics.find((item) => item.id === state.fftLab.activeTopic) || fftTopics[0]
+    elements.fftTopicButtons.forEach((button) => {
+      button.classList.toggle('active', button.dataset.fftTopic === topic.id)
+    })
+    elements.fftTopicTitle.textContent = topic.title
+    elements.fftTopicDescription.textContent = topic.description
+    elements.fftTheoryList.innerHTML = topic.theory
+      .map(
+        (item) => `
+          <article class="extension-theory-item">
+            <p>${escapeHtml(item.text)}</p>
+            <div class="formula-math">${item.formula}</div>
+          </article>
+        `,
+      )
+      .join('')
+
+    let content = ''
+    if (topic.id === 'complexity') {
+      content = buildFftComplexityContent()
+    } else if (topic.id === 'dit') {
+      content = buildDitFftContent()
+    } else {
+      content = buildDifFftContent()
+    }
+    elements.fftContent.innerHTML = `<div class="extension-content">${content}</div>`
+  }
+
+  function buildDftAppDistortionContent() {
+    const demo = buildDistortionDemoData()
+    const rows = [
+      ['频谱混叠', '高频峰折叠到低频', '提高采样率'],
+      ['频谱泄露', '主瓣变宽并向邻频扩散', '增加数据长度'],
+      ['栅栏效应', '峰值落在离散频点之间', '数据补零'],
+    ]
+
+    return `
+      <section class="extension-block">
+        <div class="extension-block__header">
+          <div>
+            <h3>利用 DFT 逼近模拟信号频谱的流程图</h3>
+            <p>连续信号先采样，再截取有限数据长度，最后用 DFT 在离散频点上近似观察频谱。</p>
+          </div>
+        </div>
+        <div class="flow-diagram">
+          <div class="flow-node"><strong>模拟信号 x(t)</strong><span>连续时域</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>均匀采样</strong><span>x[n] = x(nT<sub>s</sub>)</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>有限截断</strong><span>长度 N 数据窗</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>N 点 DFT</strong><span>离散频谱近似</span></div>
+        </div>
+      </section>
+
+      <section class="three-column-grid">
+        ${extensionChartCard(
+          '频谱混叠',
+          '例子：低采样率下 5 Hz 分量折叠到 3 Hz；措施：提高采样率。',
+          buildMultiLinePlot({
+            series: [
+              { name: 'fs=8 Hz', color: '#ef8a50', width: 1.5, data: demo.aliasLow },
+              { name: 'fs=14 Hz', color: '#24b7a0', width: 1.5, data: demo.aliasHigh },
+            ],
+            xDomain: [0, 7],
+            yDomain: [0, 1.1],
+            xLabel: 'f (Hz)',
+            yLabel: '|X(f)|',
+            height: 250,
+          }),
+        )}
+        ${extensionChartCard(
+          '频谱泄露',
+          '例子：同一频率分量在短数据长度时泄露更明显；措施：增加数据长度。',
+          buildMultiLinePlot({
+            series: [
+              { name: 'N=16', color: '#ef8a50', width: 1.45, data: demo.leakageShort },
+              { name: 'N=64', color: '#11839f', width: 1.45, data: demo.leakageLong },
+            ],
+            xDomain: [0, 1],
+            yDomain: null,
+            xLabel: '归一化频率',
+            yLabel: '|X|',
+            height: 250,
+          }),
+        )}
+        ${extensionChartCard(
+          '栅栏效应',
+          '例子：栅点过稀会错过真实峰值；措施：零填充后加密频域采样点。',
+          buildMultiLinePlot({
+            series: [
+              { name: '原始 N=16', color: '#ef8a50', width: 1.45, data: demo.fenceCoarse },
+              { name: '补零 M=64', color: '#24b7a0', width: 1.45, data: demo.fenceDense },
+            ],
+            xDomain: [0, 1],
+            yDomain: null,
+            xLabel: '归一化频率',
+            yLabel: '|X|',
+            height: 250,
+          }),
+        )}
+      </section>
+
+      <section class="two-column-grid">
+        <section class="extension-block">
+          <div class="extension-block__header">
+            <div>
+              <h3>三类失真与对应措施</h3>
+              <p>图中示意均采用两位小数，便于课堂展示与截图提交。</p>
+            </div>
+          </div>
+          ${buildCompactTable(['失真类型', '典型表现', '对应措施'], rows)}
+        </section>
+        <section class="theory-panel">
+          <h4>理论说明面板</h4>
+          <p>DFT 对模拟频谱的观察，本质上同时受到采样率、观测长度与频率采样密度三个因素影响。采样率不够会产生混叠；观测长度过短会引起泄露；频率点太稀会出现栅栏效应。</p>
+          <p>因此工程上常把三项措施配合使用：先保证奈奎斯特采样，再尽量增大有效数据长度，最后通过补零改善频谱读数的平滑度与峰值可视化效果。</p>
+        </section>
+      </section>
+    `
+  }
+
+  function buildDftAppConvolutionContent() {
+    const demo = resolveDftApplicationConvolution()
+    const linear = linearConvolution(demo.x, demo.h)
+    const equivalentCircular = circularConvolution(zeroPadSequence(demo.x, linear.length), zeroPadSequence(demo.h, linear.length))
+    const wrappedCircular = circularConvolution(zeroPadSequence(demo.x, Math.max(demo.x.length, demo.h.length)), zeroPadSequence(demo.h, Math.max(demo.x.length, demo.h.length)))
+    const ola = buildOverlapAddSteps(demo.x, demo.h, demo.blockLength)
+    const ols = buildOverlapSaveSteps(demo.x, demo.h, demo.blockLength)
+    const maxStepCount = Math.max(ola.steps.length, ols.steps.length, 1)
+    const stepIndex = mod(state.dftApps.convStep, maxStepCount)
+    const olaStep = ola.steps[Math.min(stepIndex, Math.max(0, ola.steps.length - 1))] || null
+    const olsStep = ols.steps[Math.min(stepIndex, Math.max(0, ols.steps.length - 1))] || null
+
+    return `
+      <section class="extension-block">
+        <div class="extension-block__header">
+          <div>
+            <h3>线性卷积与圆周卷积的关系</h3>
+            <p>只要补零长度满足 N ≥ Lx + Lh - 1，用 DFT 实现的 N 点圆周卷积就等于线性卷积。</p>
+          </div>
+          <span class="panel-chip">当前步 ${formatNumber(stepIndex + 1)} / ${formatNumber(maxStepCount)}</span>
+        </div>
+        <div class="extension-inline-toolbar">
+          <div class="field" style="flex:1 1 240px;">
+            <label for="dftapp-conv-x">输入序列 x[n]</label>
+            <input id="dftapp-conv-x" type="text" value="${escapeAttribute(state.dftApps.convX)}" />
+          </div>
+          <div class="field" style="flex:1 1 220px;">
+            <label for="dftapp-conv-h">输入序列 h[n]</label>
+            <input id="dftapp-conv-h" type="text" value="${escapeAttribute(state.dftApps.convH)}" />
+          </div>
+          <div class="field">
+            <label for="dftapp-block-length">分块长度 L</label>
+            <input id="dftapp-block-length" type="number" value="${escapeAttribute(String(demo.blockLength))}" />
+          </div>
+          <button type="button" class="text-button" data-dft-app-action="conv-prev">上一步</button>
+          <button type="button" class="text-button" data-dft-app-action="conv-next">下一步</button>
+          <button type="button" class="text-button" data-dft-app-action="conv-reset">重置</button>
+        </div>
+        <div class="flow-diagram" style="margin-top:12px;">
+          <div class="flow-node"><strong>有限长 x[n], h[n]</strong><span>输入两组序列</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>补零到足够长度</strong><span>N ≥ Lx + Lh - 1</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>DFT 相乘</strong><span>X[k]H[k]</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>IDFT</strong><span>恢复线性卷积</span></div>
+        </div>
+      </section>
+
+      <section class="two-column-grid">
+        ${extensionChartCard(
+          '线性卷积与圆周卷积对比',
+          '蓝线为线性卷积；橙线为短长度圆周卷积绕回；绿线为足够补零后的等效圆周卷积。',
+          buildMultiLinePlot({
+            series: [
+              { name: '线性卷积', color: '#11839f', width: 1.5, data: linear.map((value, index) => ({ x: index, y: value })) },
+              { name: '短圆周卷积', color: '#ef8a50', width: 1.45, data: wrappedCircular.map((value, index) => ({ x: index, y: value })) },
+              { name: '补零后圆周卷积', color: '#24b7a0', width: 1.45, data: equivalentCircular.map((value, index) => ({ x: index, y: value })) },
+            ],
+            xDomain: [0, Math.max(1, linear.length - 1)],
+            yDomain: null,
+            xLabel: 'n',
+            yLabel: 'y[n]',
+            height: 260,
+          }),
+        )}
+        ${extensionChartCard(
+          '线性卷积结果',
+          `输出长度 ${formatNumber(linear.length)}，可作为 OLA / OLS 的目标校验结果。`,
+          buildStemOrLinePlot({
+            mode: 'stem',
+            data: linear.map((value, index) => ({ x: index, y: value })),
+            xDomain: [0, Math.max(1, linear.length - 1)],
+            yDomain: null,
+            color: '#295874',
+            lineWidth: 1.25,
+            xLabel: 'n',
+            yLabel: 'y[n]',
+            height: 260,
+          }),
+        )}
+      </section>
+
+      <section class="two-column-grid">
+        <section class="extension-block">
+          <div class="extension-block__header">
+            <div>
+              <h3>重叠相加法 OLA</h3>
+              <p>当前显示第 ${formatNumber((olaStep ? olaStep.blockIndex : 0) + 1)} 个输入块与累加结果。</p>
+            </div>
+          </div>
+          ${
+            olaStep
+              ? extensionChartCard(
+                  '当前块卷积与累加',
+                  '橙线为当前块卷积后移位结果，绿线为累计输出。',
+                  buildMultiLinePlot({
+                    series: [
+                      { name: '当前块输出', color: '#ef8a50', width: 1.45, data: olaStep.placed.map((value, index) => ({ x: index, y: value })) },
+                      { name: '累计输出', color: '#24b7a0', width: 1.45, data: olaStep.accumulated.map((value, index) => ({ x: index, y: value })) },
+                    ],
+                    xDomain: [0, Math.max(1, linear.length - 1)],
+                    yDomain: null,
+                    xLabel: 'n',
+                    yLabel: 'y[n]',
+                    height: 250,
+                  }),
+                )
+              : ''
+          }
+          ${
+            olaStep
+              ? buildCompactTable(
+                  ['对象', '数据'],
+                  [
+                    ['当前块', formatSequenceInline(olaStep.block)],
+                    ['块卷积', formatSequenceInline(olaStep.blockConv)],
+                    ['累计输出', formatSequenceInline(olaStep.accumulated)],
+                  ],
+                )
+              : ''
+          }
+        </section>
+
+        <section class="extension-block">
+          <div class="extension-block__header">
+            <div>
+              <h3>重叠保留法 OLS</h3>
+              <p>当前显示第 ${formatNumber((olsStep ? olsStep.blockIndex : 0) + 1)} 个输入帧、圆周卷积输出与保留有效段。</p>
+            </div>
+          </div>
+          ${
+            olsStep
+              ? extensionChartCard(
+                  '当前帧有效输出',
+                  '蓝线为当前帧圆周卷积，绿线为丢弃前 M-1 点后的有效输出。',
+                  buildMultiLinePlot({
+                    series: [
+                      { name: '当前帧圆周卷积', color: '#11839f', width: 1.45, data: olsStep.circular.map((value, index) => ({ x: index, y: value })) },
+                      { name: '有效输出映射', color: '#24b7a0', width: 1.45, data: olsStep.validMapped.map((value, index) => ({ x: index, y: value })) },
+                    ],
+                    xDomain: [0, Math.max(1, olsStep.circular.length - 1)],
+                    yDomain: null,
+                    xLabel: '样点索引',
+                    yLabel: '幅值',
+                    height: 250,
+                  }),
+                )
+              : ''
+          }
+          ${
+            olsStep
+              ? buildCompactTable(
+                  ['对象', '数据'],
+                  [
+                    ['当前输入帧', formatSequenceInline(olsStep.frame)],
+                    ['有效输出', formatSequenceInline(olsStep.valid)],
+                    ['累计拼接', formatSequenceInline(olsStep.assembled)],
+                  ],
+                )
+              : ''
+          }
+        </section>
+      </section>
+    `
+  }
+
+  function buildDftAppCorrelationContent() {
+    const demo = resolveDftApplicationCorrelation()
+    const peakIndex = indexOfMax(demo.values)
+    const peakLag = demo.lags[peakIndex]
+    const rows = demo.values.map((value, index) => [`l = ${demo.lags[index]}`, formatNumber(value)])
+
+    return `
+      <section class="extension-block">
+        <div class="extension-block__header">
+          <div>
+            <h3>线性相关流程图</h3>
+            <p>先反折 y[n]，再与 x[n] 做线性卷积，即可得到线性相关序列。</p>
+          </div>
+          <span class="panel-chip">峰值时延 ${formatNumber(peakLag)}</span>
+        </div>
+        <div class="extension-inline-toolbar">
+          <div class="field" style="flex:1 1 220px;">
+            <label for="dftapp-corr-x">序列 x[n]</label>
+            <input id="dftapp-corr-x" type="text" value="${escapeAttribute(state.dftApps.corrX)}" />
+          </div>
+          <div class="field" style="flex:1 1 220px;">
+            <label for="dftapp-corr-y">序列 y[n]</label>
+            <input id="dftapp-corr-y" type="text" value="${escapeAttribute(state.dftApps.corrY)}" />
+          </div>
+        </div>
+        <div class="flow-diagram" style="margin-top:12px;">
+          <div class="flow-node"><strong>x[n]</strong><span>参考序列</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>y[-n]</strong><span>先做反折</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>线性卷积</strong><span>x[n] * y[-n]</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>r<sub>xy</sub>[l]</strong><span>读出峰值时延</span></div>
+        </div>
+      </section>
+
+      <section class="three-column-grid">
+        ${extensionChartCard(
+          '输入序列 x[n]',
+          '第一组有限长序列。',
+          buildStemOrLinePlot({
+            mode: 'stem',
+            data: demo.x.map((value, index) => ({ x: index, y: value })),
+            xDomain: [0, Math.max(1, demo.x.length - 1)],
+            yDomain: null,
+            color: '#24b7a0',
+            lineWidth: 1.25,
+            xLabel: 'n',
+            yLabel: 'x[n]',
+            height: 240,
+          }),
+        )}
+        ${extensionChartCard(
+          '输入序列 y[n]',
+          '第二组有限长序列。',
+          buildStemOrLinePlot({
+            mode: 'stem',
+            data: demo.y.map((value, index) => ({ x: index, y: value })),
+            xDomain: [0, Math.max(1, demo.y.length - 1)],
+            yDomain: null,
+            color: '#ef8a50',
+            lineWidth: 1.25,
+            xLabel: 'n',
+            yLabel: 'y[n]',
+            height: 240,
+          }),
+        )}
+        ${extensionChartCard(
+          '线性相关 r_xy[l]',
+          '峰值位置表示最佳对齐延时。',
+          buildStemOrLinePlot({
+            mode: 'stem',
+            data: demo.values.map((value, index) => ({ x: demo.lags[index], y: value })),
+            xDomain: [demo.lags[0], demo.lags[demo.lags.length - 1]],
+            yDomain: null,
+            color: '#11839f',
+            lineWidth: 1.25,
+            xLabel: 'l',
+            yLabel: 'r_xy[l]',
+            height: 240,
+          }),
+        )}
+      </section>
+
+      <section class="two-column-grid">
+        <section class="extension-block">
+          <div class="extension-block__header">
+            <div>
+              <h3>相关结果表</h3>
+              <p>保留两位小数，便于直接截图展示每个时延点的相关值。</p>
+            </div>
+          </div>
+          ${buildCompactTable(['时延', '相关值'], rows)}
+        </section>
+        <section class="theory-panel">
+          <h4>理论说明面板</h4>
+          <p>线性相关常用于序列对齐、回波检测和模式匹配。若两个序列在某个时延位置最相似，则相关输出会在对应时延处出现峰值。</p>
+          <p>从实现角度看，线性相关等价于“先反折、再卷积”，因此既可以按定义直接计算，也可以借助卷积与 DFT 的关系高效实现。</p>
+        </section>
+      </section>
+    `
+  }
+
+  function buildDftCaseContent() {
+    const scenario = buildEngineeringCaseScenario(state.dftApps.caseId)
+
+    return `
+      <section class="extension-block">
+        <div class="extension-block__header">
+          <div>
+            <h3>DFT 工程案例切换</h3>
+            <p>点击切换典型工程案例，右侧图展示对应信号处理链路和结果。</p>
+          </div>
+        </div>
+        <div class="signal-switch-row">
+          ${['underwater', 'fmcw', 'pulse'].map(
+            (caseId) => `
+              <button
+                type="button"
+                class="ghost-chip${caseId === state.dftApps.caseId ? ' active' : ''}"
+                data-dft-app-action="set-case"
+                data-case-id="${caseId}"
+              >
+                ${escapeHtml(caseId === 'underwater' ? '水下目标检测' : caseId === 'fmcw' ? 'FMCW 测距雷达' : 'PD 雷达脉冲压缩')}
+              </button>
+            `,
+          ).join('')}
+        </div>
+        <div class="flow-diagram" style="margin-top:12px;">
+          ${scenario.flow
+            .map((item, index) =>
+              index === scenario.flow.length - 1
+                ? `<div class="flow-node"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.text)}</span></div>`
+                : `<div class="flow-node"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.text)}</span></div><div class="flow-arrow">&rarr;</div>`,
+            )
+            .join('')}
+        </div>
+      </section>
+
+      <section class="two-column-grid">
+        ${extensionChartCard(scenario.chartA.title, scenario.chartA.note, scenario.chartA.svg)}
+        ${extensionChartCard(scenario.chartB.title, scenario.chartB.note, scenario.chartB.svg)}
+      </section>
+
+      <section class="two-column-grid">
+        <section class="extension-block">
+          <div class="extension-block__header">
+            <div>
+              <h3>${escapeHtml(scenario.title)}</h3>
+              <p>${escapeHtml(scenario.subtitle)}</p>
+            </div>
+          </div>
+          <div class="relation-grid">
+            ${scenario.highlights
+              .map(
+                (item) => `
+                  <article class="relation-card">
+                    <h4>${escapeHtml(item.title)}</h4>
+                    <p>${escapeHtml(item.text)}</p>
+                  </article>
+                `,
+              )
+              .join('')}
+          </div>
+        </section>
+        <section class="theory-panel">
+          <h4>理论说明面板</h4>
+          <p>${escapeHtml(scenario.summary)}</p>
+          <p>${escapeHtml(scenario.note)}</p>
+        </section>
+      </section>
+    `
+  }
+
+  function buildFftComplexityContent() {
+    const sizes = [4, 8, 16, 32, 64, 128, 256]
+    const rows = sizes.map((N) => {
+      const dftCost = N * N
+      const fftCost = (N / 2) * Math.log2(N)
+      return [formatNumber(N), formatNumber(dftCost), formatNumber(fftCost), formatNumber(dftCost / Math.max(fftCost, 1))]
+    })
+    const dftSeries = sizes.map((N) => ({ x: N, y: N * N }))
+    const fftSeries = sizes.map((N) => ({ x: N, y: (N / 2) * Math.log2(N) }))
+
+    return `
+      <section class="extension-block">
+        <div class="extension-block__header">
+          <div>
+            <h3>DFT 与 FFT 的运算瓶颈对比</h3>
+            <p>输入规模增大时，DFT 的二次复杂度增长很快，而 FFT 通过蝶形分解显著降低运算量。</p>
+          </div>
+        </div>
+        <div class="flow-diagram">
+          <div class="flow-node"><strong>直接 DFT</strong><span>逐频点累加</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>重复乘加</strong><span>存在大量冗余</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>FFT 分解</strong><span>复用中间结果</span></div>
+          <div class="flow-arrow">&rarr;</div>
+          <div class="flow-node"><strong>蝶形级联</strong><span>复杂度下降</span></div>
+        </div>
+      </section>
+
+      <section class="two-column-grid">
+        ${extensionChartCard(
+          '运算量随 N 变化',
+          '橙线为 DFT，蓝线为 FFT。N 越大，两者差距越明显。',
+          buildMultiLinePlot({
+            series: [
+              { name: 'DFT', color: '#ef8a50', width: 1.5, data: dftSeries },
+              { name: 'FFT', color: '#11839f', width: 1.5, data: fftSeries },
+            ],
+            xDomain: [4, 256],
+            yDomain: null,
+            xLabel: 'N',
+            yLabel: '运算量',
+            height: 280,
+          }),
+        )}
+        <section class="extension-block">
+          <div class="extension-block__header">
+            <div>
+              <h3>运算特点</h3>
+              <p>表中把常用规模下的直接 DFT 与 FFT 运算量做了并列展示。</p>
+            </div>
+          </div>
+          ${buildCompactTable(['N', 'DFT 量级', 'FFT 量级', '加速比'], rows)}
+        </section>
+      </section>
+    `
+  }
+
+  function buildDitFftContent() {
+    const sequence = resolveFftInputSequence(state.fftLab.ditSequence)
+    const fft = computeDitFft(sequence)
+    const magnitudes = fft.output.map((value) => cAbs(value))
+    const viewLabels = {
+      split: '偶奇分解视图',
+      subtree: '4 点子 DFT 视图',
+      overview: '总蝶形视图',
+    }
+
+    return `
+      <section class="extension-block">
+        <div class="extension-block__header">
+          <div>
+            <h3>DIT-FFT 输入与视图切换</h3>
+            <p>输入序列自动补零或截断到 8 点，点击按钮切换不同分解视图。</p>
+          </div>
+          <span class="panel-chip">${escapeHtml(viewLabels[state.fftLab.ditView] || viewLabels.overview)}</span>
+        </div>
+        <div class="extension-inline-toolbar">
+          <div class="field" style="flex:1 1 320px;">
+            <label for="fft-dit-sequence">8 点输入序列</label>
+            <input id="fft-dit-sequence" type="text" value="${escapeAttribute(state.fftLab.ditSequence)}" />
+          </div>
+          <button type="button" class="text-button" data-fft-action="set-dit-view" data-view-id="split">偶奇分解</button>
+          <button type="button" class="text-button" data-fft-action="set-dit-view" data-view-id="subtree">4点子DFT</button>
+          <button type="button" class="text-button" data-fft-action="set-dit-view" data-view-id="overview">总蝶形图</button>
+        </div>
+      </section>
+
+      <section class="two-column-grid">
+        ${extensionChartCard(
+          'DIT 蝶形运算流图',
+          '左侧为输入，右侧为输出，中间三列对应 8 点 FFT 的三级蝶形。',
+          buildButterflyFlowSvg('dit', state.fftLab.ditView, sequence.length),
+        )}
+        <section class="extension-block">
+          <div class="extension-block__header">
+            <div>
+              <h3>输入序列计算结果</h3>
+              <p>表中依次给出位倒序输入、一级、二级与三级蝶形结果。</p>
+            </div>
+          </div>
+          ${buildCompactTable(['阶段', '数据'], buildFftStageRows(fft.stageRows))}
+        </section>
+      </section>
+
+      <section class="two-column-grid">
+        ${extensionChartCard(
+          '输入序列 x[n]',
+          '用于 DIT 分解的 8 点输入。',
+          buildStemOrLinePlot({
+            mode: 'stem',
+            data: sequence.map((value, index) => ({ x: index, y: value })),
+            xDomain: [0, 7],
+            yDomain: null,
+            color: '#24b7a0',
+            lineWidth: 1.25,
+            xLabel: 'n',
+            yLabel: 'x[n]',
+            height: 250,
+          }),
+        )}
+        ${extensionChartCard(
+          '输出幅度 |X[k]|',
+          'DIT-FFT 输出与直接 DFT 结果一致。',
+          buildStemOrLinePlot({
+            mode: 'stem',
+            data: magnitudes.map((value, index) => ({ x: index, y: value })),
+            xDomain: [0, 7],
+            yDomain: null,
+            color: '#11839f',
+            lineWidth: 1.25,
+            xLabel: 'k',
+            yLabel: '|X[k]|',
+            height: 250,
+          }),
+        )}
+      </section>
+    `
+  }
+
+  function buildDifFftContent() {
+    const sequence = resolveFftInputSequence(state.fftLab.difSequence)
+    const fft = computeDifFft(sequence)
+    const magnitudes = fft.output.map((value) => cAbs(value))
+    const viewLabels = {
+      split: '首级全长蝶形',
+      subtree: '4 点子问题视图',
+      overview: '总蝶形视图',
+    }
+
+    return `
+      <section class="extension-block">
+        <div class="extension-block__header">
+          <div>
+            <h3>DIF-FFT 输入与视图切换</h3>
+            <p>先在整段序列上做蝶形，再继续向下分解；点击按钮切换不同展示视图。</p>
+          </div>
+          <span class="panel-chip">${escapeHtml(viewLabels[state.fftLab.difView] || viewLabels.overview)}</span>
+        </div>
+        <div class="extension-inline-toolbar">
+          <div class="field" style="flex:1 1 320px;">
+            <label for="fft-dif-sequence">8 点输入序列</label>
+            <input id="fft-dif-sequence" type="text" value="${escapeAttribute(state.fftLab.difSequence)}" />
+          </div>
+          <button type="button" class="text-button" data-fft-action="set-dif-view" data-view-id="split">首级蝶形</button>
+          <button type="button" class="text-button" data-fft-action="set-dif-view" data-view-id="subtree">4点子问题</button>
+          <button type="button" class="text-button" data-fft-action="set-dif-view" data-view-id="overview">总蝶形图</button>
+        </div>
+      </section>
+
+      <section class="two-column-grid">
+        ${extensionChartCard(
+          'DIF 蝶形运算流图',
+          '配对顺序与 DIT 相反，先做全长蝶形，再进入更小子问题。',
+          buildButterflyFlowSvg('dif', state.fftLab.difView, sequence.length),
+        )}
+        <section class="extension-block">
+          <div class="extension-block__header">
+            <div>
+              <h3>输入序列计算结果</h3>
+              <p>表中依次给出一级、二级、三级蝶形与自然顺序输出。</p>
+            </div>
+          </div>
+          ${buildCompactTable(['阶段', '数据'], buildFftStageRows(fft.stageRows))}
+        </section>
+      </section>
+
+      <section class="two-column-grid">
+        ${extensionChartCard(
+          '输入序列 x[n]',
+          '用于 DIF 分解的 8 点输入。',
+          buildStemOrLinePlot({
+            mode: 'stem',
+            data: sequence.map((value, index) => ({ x: index, y: value })),
+            xDomain: [0, 7],
+            yDomain: null,
+            color: '#24b7a0',
+            lineWidth: 1.25,
+            xLabel: 'n',
+            yLabel: 'x[n]',
+            height: 250,
+          }),
+        )}
+        ${extensionChartCard(
+          '输出幅度 |X[k]|',
+          '自然顺序重排后的 DIF 输出幅度。',
+          buildStemOrLinePlot({
+            mode: 'stem',
+            data: magnitudes.map((value, index) => ({ x: index, y: value })),
+            xDomain: [0, 7],
+            yDomain: null,
+            color: '#ef8a50',
+            lineWidth: 1.25,
+            xLabel: 'k',
+            yLabel: '|X[k]|',
+            height: 250,
+          }),
+        )}
+      </section>
+    `
   }
 
   function buildDfsExtensionContent() {
@@ -4998,6 +6216,553 @@ tbody td {
     })
   }
 
+  function linearConvolution(a, b) {
+    const result = Array(a.length + b.length - 1).fill(0)
+    for (let n = 0; n < result.length; n += 1) {
+      let sum = 0
+      for (let k = 0; k < a.length; k += 1) {
+        const hIndex = n - k
+        if (hIndex >= 0 && hIndex < b.length) {
+          sum += a[k] * b[hIndex]
+        }
+      }
+      result[n] = round2(sum)
+    }
+    return result
+  }
+
+  function linearCorrelation(x, y) {
+    const reversed = y.slice().reverse()
+    const values = linearConvolution(x, reversed)
+    const lags = Array.from({ length: values.length }, (_, index) => index - (y.length - 1))
+    return { lags, values }
+  }
+
+  function resolveDftApplicationConvolution() {
+    try {
+      const x = parseSequenceList(state.dftApps.convX, 3)
+      const h = parseSequenceList(state.dftApps.convH, 2)
+      return {
+        x,
+        h,
+        blockLength: clamp(Math.round(state.dftApps.blockLength), 2, 8),
+      }
+    } catch (error) {
+      return {
+        x: [1, 2, 1, 0, 1, 2, 0, 1],
+        h: [1, -1, 2],
+        blockLength: 4,
+      }
+    }
+  }
+
+  function resolveDftApplicationCorrelation() {
+    try {
+      const x = parseSequenceList(state.dftApps.corrX, 2)
+      const y = parseSequenceList(state.dftApps.corrY, 2)
+      const correlation = linearCorrelation(x, y)
+      return { x, y, ...correlation }
+    } catch (error) {
+      const x = [1, 2, 0, 1, 0]
+      const y = [1, 0, 1]
+      return { x, y, ...linearCorrelation(x, y) }
+    }
+  }
+
+  function buildOverlapAddSteps(x, h, blockLength) {
+    const totalLength = x.length + h.length - 1
+    const steps = []
+    let accumulated = Array(totalLength).fill(0)
+    let blockIndex = 0
+
+    for (let start = 0; start < x.length; start += blockLength) {
+      const block = x.slice(start, start + blockLength)
+      const blockConv = linearConvolution(block, h)
+      const placed = Array(totalLength).fill(0)
+      for (let index = 0; index < blockConv.length; index += 1) {
+        if (start + index < totalLength) {
+          placed[start + index] = round2(blockConv[index])
+        }
+      }
+      accumulated = accumulated.map((value, index) => round2(value + placed[index]))
+      steps.push({
+        blockIndex,
+        block,
+        blockConv,
+        placed,
+        accumulated: accumulated.slice(),
+      })
+      blockIndex += 1
+    }
+
+    return { steps }
+  }
+
+  function buildOverlapSaveSteps(x, h, blockLength) {
+    const M = h.length
+    const overlap = M - 1
+    const N = blockLength + overlap
+    const paddedInput = Array(overlap).fill(0).concat(x)
+    const totalLength = x.length + M - 1
+    const steps = []
+    let assembled = Array(totalLength).fill(0)
+    let outputStart = 0
+    let blockIndex = 0
+
+    while (outputStart < totalLength) {
+      const frame = zeroPadSequence(paddedInput.slice(blockIndex * blockLength, blockIndex * blockLength + N), N)
+      const circular = circularConvolution(frame, zeroPadSequence(h, N))
+      const valid = circular.slice(overlap, overlap + blockLength).slice(0, totalLength - outputStart)
+      valid.forEach((value, index) => {
+        assembled[outputStart + index] = round2(value)
+      })
+      const validMapped = Array(circular.length).fill(0)
+      valid.forEach((value, index) => {
+        validMapped[overlap + index] = round2(value)
+      })
+      steps.push({
+        blockIndex,
+        frame,
+        circular,
+        valid,
+        validMapped,
+        assembled: assembled.slice(),
+      })
+      outputStart += blockLength
+      blockIndex += 1
+      if (blockIndex > 24) {
+        break
+      }
+    }
+
+    return { steps }
+  }
+
+  function resolveFftInputSequence(raw) {
+    try {
+      return zeroPadSequence(parseSequenceList(raw, 2), 8)
+    } catch (error) {
+      return [1, 2, 3, 4, 0, 0, 0, 0]
+    }
+  }
+
+  function computeDitFft(sequence) {
+    const N = 8
+    const bits = 3
+    const reordered = Array.from({ length: N }, (_, index) => complex(sequence[bitReverseIndex(index, bits)] || 0, 0))
+    const working = reordered.map((value) => complex(value.re, value.im))
+    const stageRows = [{ label: '位倒序输入', values: reordered }]
+    let stageCount = 1
+
+    for (let size = 2; size <= N; size *= 2) {
+      const half = size / 2
+      for (let start = 0; start < N; start += size) {
+        for (let k = 0; k < half; k += 1) {
+          const twiddle = complexPolar(1, (-TAU * k) / size)
+          const top = working[start + k]
+          const bottom = cMul(twiddle, working[start + k + half])
+          working[start + k] = cAdd(top, bottom)
+          working[start + k + half] = cSub(top, bottom)
+        }
+      }
+      stageRows.push({ label: `第 ${stageCount} 级蝶形`, values: working.map((value) => complex(round2(value.re), round2(value.im))) })
+      stageCount += 1
+    }
+
+    return {
+      output: working.map((value) => complex(round2(value.re), round2(value.im))),
+      stageRows,
+    }
+  }
+
+  function computeDifFft(sequence) {
+    const N = 8
+    const bits = 3
+    const working = Array.from({ length: N }, (_, index) => complex(sequence[index] || 0, 0))
+    const stageRows = []
+    let stageCount = 1
+
+    for (let size = N; size >= 2; size /= 2) {
+      const half = size / 2
+      for (let start = 0; start < N; start += size) {
+        for (let k = 0; k < half; k += 1) {
+          const top = working[start + k]
+          const bottom = working[start + k + half]
+          const sum = cAdd(top, bottom)
+          const diff = cSub(top, bottom)
+          const twiddle = complexPolar(1, (-TAU * k) / size)
+          working[start + k] = sum
+          working[start + k + half] = cMul(diff, twiddle)
+        }
+      }
+      stageRows.push({ label: `第 ${stageCount} 级蝶形`, values: working.map((value) => complex(round2(value.re), round2(value.im))) })
+      stageCount += 1
+    }
+
+    const output = Array.from({ length: N }, (_, index) => working[bitReverseIndex(index, bits)])
+      .map((value) => complex(round2(value.re), round2(value.im)))
+    stageRows.push({ label: '自然顺序输出', values: output })
+
+    return { output, stageRows }
+  }
+
+  function buildFftStageRows(stageRows) {
+    return stageRows.map((stage) => [stage.label, formatComplexSequenceInline(stage.values)])
+  }
+
+  function buildButterflyFlowSvg(algorithm, viewMode, length) {
+    const width = 980
+    const height = 320
+    const columns = [110, 350, 590, 830]
+    const rows = Array.from({ length }, (_, index) => 42 + index * 34)
+    const pairings =
+      algorithm === 'dit'
+        ? [
+            [
+              [0, 1],
+              [2, 3],
+              [4, 5],
+              [6, 7],
+            ],
+            [
+              [0, 2],
+              [1, 3],
+              [4, 6],
+              [5, 7],
+            ],
+            [
+              [0, 4],
+              [1, 5],
+              [2, 6],
+              [3, 7],
+            ],
+          ]
+        : [
+            [
+              [0, 4],
+              [1, 5],
+              [2, 6],
+              [3, 7],
+            ],
+            [
+              [0, 2],
+              [1, 3],
+              [4, 6],
+              [5, 7],
+            ],
+            [
+              [0, 1],
+              [2, 3],
+              [4, 5],
+              [6, 7],
+            ],
+          ]
+    const stagePalette = ['#24b7a0', '#11839f', '#ef8a50']
+    const activeStages =
+      viewMode === 'split' ? [0] : viewMode === 'subtree' ? [1] : [0, 1, 2]
+
+    const lines = pairings
+      .map((stagePairs, stageIndex) => {
+        const active = activeStages.includes(stageIndex)
+        const color = active ? stagePalette[stageIndex] : 'rgba(111,132,153,0.2)'
+        return stagePairs
+          .map(([top, bottom]) => {
+            const x1 = columns[stageIndex]
+            const x2 = columns[stageIndex + 1]
+            const y1 = rows[top]
+            const y2 = rows[bottom]
+            return `
+              <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y1}" stroke="${color}" stroke-width="${active ? 1.8 : 1.1}" />
+              <line x1="${x1}" y1="${y2}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${active ? 1.8 : 1.1}" />
+              <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${active ? 1.5 : 0.9}" opacity="${active ? 0.95 : 0.55}" />
+              <line x1="${x1}" y1="${y2}" x2="${x2}" y2="${y1}" stroke="${color}" stroke-width="${active ? 1.5 : 0.9}" opacity="${active ? 0.95 : 0.55}" />
+            `
+          })
+          .join('')
+      })
+      .join('')
+
+    const nodes = columns
+      .map((column, columnIndex) =>
+        rows
+          .map(
+            (row, rowIndex) => `
+              <circle cx="${column}" cy="${row}" r="6" fill="white" stroke="${columnIndex === 0 ? '#24b7a0' : columnIndex === 3 ? '#ef8a50' : '#295874'}" stroke-width="2" />
+            `,
+          )
+          .join(''),
+      )
+      .join('')
+
+    const labels = rows
+      .map(
+        (row, rowIndex) => `
+          <text x="72" y="${row + 4}" font-size="12" text-anchor="end" fill="#38556d">x[${rowIndex}]</text>
+          <text x="868" y="${row + 4}" font-size="12" fill="#38556d">X[${rowIndex}]</text>
+        `,
+      )
+      .join('')
+
+    const titles = ['输入', '一级', '二级', '输出']
+      .map(
+        (label, index) => `
+          <text x="${columns[index]}" y="18" font-size="13" text-anchor="middle" fill="#15324a">${label}</text>
+        `,
+      )
+      .join('')
+
+    return `
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="FFT 蝶形运算流图">
+        <rect x="0" y="0" width="${width}" height="${height}" rx="24" fill="#fcfeff" />
+        ${titles}
+        ${lines}
+        ${nodes}
+        ${labels}
+      </svg>
+    `
+  }
+
+  function bitReverseIndex(index, bits) {
+    let result = 0
+    for (let step = 0; step < bits; step += 1) {
+      result = (result << 1) | ((index >> step) & 1)
+    }
+    return result
+  }
+
+  function buildDistortionDemoData() {
+    const aliasLow = buildPeakSpectrumData(
+      [
+        { center: 1, amplitude: 1, width: 0.22 },
+        { center: 3, amplitude: 0.78, width: 0.22 },
+      ],
+      [0, 7],
+      120,
+    )
+    const aliasHigh = buildPeakSpectrumData(
+      [
+        { center: 1, amplitude: 1, width: 0.2 },
+        { center: 5, amplitude: 0.78, width: 0.2 },
+      ],
+      [0, 7],
+      120,
+    )
+    const leakageShort = normalizedSpectrumSeries(Array.from({ length: 16 }, (_, n) => Math.cos(TAU * 0.19 * n)), 16)
+    const leakageLong = normalizedSpectrumSeries(Array.from({ length: 64 }, (_, n) => Math.cos(TAU * 0.19 * n)), 64)
+    const fenceSequence = Array.from({ length: 16 }, (_, n) => Math.cos(TAU * 0.21 * n))
+    const fenceCoarse = normalizedSpectrumSeries(fenceSequence, 16)
+    const fenceDense = normalizedSpectrumSeries(fenceSequence, 64)
+
+    return {
+      aliasLow,
+      aliasHigh,
+      leakageShort,
+      leakageLong,
+      fenceCoarse,
+      fenceDense,
+    }
+  }
+
+  function buildPeakSpectrumData(peaks, domain, count) {
+    return linspace(domain[0], domain[1], count).map((x) => {
+      const y = peaks.reduce((sum, peak) => sum + peak.amplitude * Math.exp(-Math.pow((x - peak.center) / peak.width, 2)), 0)
+      return { x: round2(x), y: round2(Math.min(1.1, y)) }
+    })
+  }
+
+  function normalizedSpectrumSeries(sequence, dftLength) {
+    const spectrum = computeDft(zeroPadSequence(sequence.map((value) => round2(value)), dftLength))
+    const half = Math.floor(dftLength / 2)
+    const magnitudes = spectrum.slice(0, half + 1).map((value) => cAbs(value))
+    const maxValue = Math.max(...magnitudes, EPS)
+    return magnitudes.map((value, index) => ({
+      x: round2(index / Math.max(1, half)),
+      y: round2(value / maxValue),
+    }))
+  }
+
+  function buildEngineeringCaseScenario(caseId) {
+    if (caseId === 'fmcw') {
+      const tx = Array.from({ length: 80 }, (_, n) => ({ x: round2(n / 16), y: round2(Math.cos(0.08 * n * n)) }))
+      const beat = buildPeakSpectrumData([{ center: 1.8, amplitude: 1, width: 0.18 }], [0, 4], 100)
+      return {
+        title: 'FMCW 测距雷达',
+        subtitle: '通过拍频峰值估计目标距离。',
+        flow: [
+          { title: '发射线性调频', text: '频率随时间线性变化' },
+          { title: '接收延迟回波', text: '与目标距离相关' },
+          { title: '混频取拍频', text: '得到低频差拍' },
+          { title: 'DFT 测峰值', text: '由拍频反推距离' },
+        ],
+        chartA: {
+          title: '发射调频波形',
+          note: '线性调频发射波形示意。',
+          svg: buildStemOrLinePlot({
+            mode: 'line',
+            data: tx,
+            xDomain: [0, 5],
+            yDomain: null,
+            color: '#24b7a0',
+            lineWidth: 1.3,
+            xLabel: 't',
+            yLabel: 's(t)',
+            height: 250,
+          }),
+        },
+        chartB: {
+          title: '拍频频谱峰值',
+          note: 'DFT 找到拍频峰值后可换算目标距离。',
+          svg: buildStemOrLinePlot({
+            mode: 'line',
+            data: beat,
+            xDomain: [0, 4],
+            yDomain: [0, 1.1],
+            color: '#ef8a50',
+            lineWidth: 1.4,
+            xLabel: 'f_b (kHz)',
+            yLabel: '|X|',
+            height: 250,
+          }),
+        },
+        highlights: [
+          { title: '核心变量', text: '拍频峰值与距离成正比。' },
+          { title: '为什么用 DFT', text: '便于从噪声背景中精确读出主峰位置。' },
+          { title: '课堂截图点', text: '发射波形与拍频谱峰值。' },
+        ],
+        summary: 'FMCW 雷达的关键是把目标距离转化成拍频，再通过 DFT 在频域中稳健地读出峰值位置。',
+        note: '采样点数越多，频率分辨率越高，距离估计也越精细。',
+      }
+    }
+
+    if (caseId === 'pulse') {
+      const pulse = Array.from({ length: 80 }, (_, n) => ({ x: n, y: round2(Math.cos(0.12 * n * n) * (n < 40 ? 1 : 0)) }))
+      const compressed = buildPeakSpectrumData([{ center: 42, amplitude: 1, width: 2.8 }], [0, 80], 120)
+      return {
+        title: 'PD 雷达脉冲压缩',
+        subtitle: '发射宽脉冲，匹配滤波后获得窄主瓣。',
+        flow: [
+          { title: '编码或调频脉冲', text: '保证能量积累' },
+          { title: '目标回波', text: '携带延迟信息' },
+          { title: '匹配滤波', text: '时域压缩能量' },
+          { title: '峰值检测', text: '提升距离分辨率' },
+        ],
+        chartA: {
+          title: '发射脉冲',
+          note: '宽脉冲或线性调频脉冲示意。',
+          svg: buildStemOrLinePlot({
+            mode: 'line',
+            data: pulse,
+            xDomain: [0, 79],
+            yDomain: null,
+            color: '#11839f',
+            lineWidth: 1.3,
+            xLabel: 'n',
+            yLabel: 's[n]',
+            height: 250,
+          }),
+        },
+        chartB: {
+          title: '压缩后主峰',
+          note: '匹配滤波后能量集中到窄主峰。',
+          svg: buildStemOrLinePlot({
+            mode: 'line',
+            data: compressed,
+            xDomain: [0, 80],
+            yDomain: [0, 1.1],
+            color: '#ef8a50',
+            lineWidth: 1.4,
+            xLabel: 'n',
+            yLabel: 'y[n]',
+            height: 250,
+          }),
+        },
+        highlights: [
+          { title: '处理目的', text: '兼顾发射能量和距离分辨率。' },
+          { title: '频域视角', text: '常借助 DFT 快速实现匹配滤波。' },
+          { title: '课堂截图点', text: '宽脉冲输入与窄主峰输出。' },
+        ],
+        summary: '脉冲压缩把长脉冲的高能量与短脉冲的高分辨率结合起来，是雷达处理中非常典型的 DFT / FFT 应用。',
+        note: '主峰越尖锐，目标分辨越清晰；旁瓣控制则关系到弱目标检测性能。',
+      }
+    }
+
+    const echo = Array.from({ length: 80 }, (_, n) => {
+      const t = n / 12
+      const value = Math.sin(2.1 * t) * Math.exp(-0.25 * t) + 0.45 * Math.sin(3.6 * (t - 1.8)) * (t > 1.8 ? 1 : 0)
+      return { x: round2(t), y: round2(value) }
+    })
+    const spectrum = buildPeakSpectrumData(
+      [
+        { center: 1.2, amplitude: 0.8, width: 0.18 },
+        { center: 2.6, amplitude: 1.0, width: 0.16 },
+      ],
+      [0, 4],
+      100,
+    )
+    return {
+      title: '水下目标检测',
+      subtitle: '回波频谱中的特征峰可用于目标识别。',
+      flow: [
+        { title: '发射声脉冲', text: '主动声呐照射目标' },
+        { title: '接收回波', text: '包含目标与环境信息' },
+        { title: 'DFT 分析频谱', text: '提取特征峰值' },
+        { title: '目标判别', text: '依据峰值和能量分布' },
+      ],
+      chartA: {
+        title: '回波时域波形',
+        note: '典型衰减回波与延迟分量示意。',
+        svg: buildStemOrLinePlot({
+          mode: 'line',
+          data: echo,
+          xDomain: [0, 6.5],
+          yDomain: null,
+          color: '#24b7a0',
+          lineWidth: 1.3,
+          xLabel: 't (s)',
+          yLabel: 'x(t)',
+          height: 250,
+        }),
+      },
+      chartB: {
+        title: '回波频谱特征峰',
+        note: '通过 DFT 识别目标相关频带。',
+        svg: buildStemOrLinePlot({
+          mode: 'line',
+          data: spectrum,
+          xDomain: [0, 4],
+          yDomain: [0, 1.1],
+          color: '#11839f',
+          lineWidth: 1.4,
+          xLabel: 'f (kHz)',
+          yLabel: '|X|',
+          height: 250,
+        }),
+      },
+      highlights: [
+        { title: '核心任务', text: '在复杂噪声和混响中提取稳定谱特征。' },
+        { title: '为什么用 DFT', text: '频域峰值更适合做目标分类与门限检测。' },
+        { title: '课堂截图点', text: '回波波形与谱峰。' },
+      ],
+      summary: '水下目标检测常通过频域特征来区分目标与背景。回波经过 DFT 后，目标共振频率和能量集中区会更加直观。',
+      note: '若结合多帧处理和相关检测，还可以进一步提高弱目标检测概率。',
+    }
+  }
+
+  function formatSequenceInline(values) {
+    return `[${values.map((value) => formatNumber(value)).join(', ')}]`
+  }
+
+  function formatComplexSequenceInline(values) {
+    return `[${values.map((value) => formatComplexCompact(value)).join(', ')}]`
+  }
+
+  function formatComplexCompact(value) {
+    const re = formatNumber(value.re)
+    const imValue = round2(value.im)
+    const sign = imValue >= 0 ? '+' : '-'
+    return `${re}${sign}j${formatNumber(Math.abs(imValue))}`
+  }
+
   function sampleDftSpectrum(sequence, length) {
     const spectrum = computeDft(zeroPadSequence(sequence, length))
     return spectrum
@@ -5335,4 +7100,3 @@ tbody td {
 </script>
   </body>
 </html>
-
